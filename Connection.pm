@@ -325,7 +325,7 @@ sub dequote {
     
     # Thanks to Abigail (abigail@fnx.com) for this clever bit.
     if (index($line, "\cP") >= 0) {    # dequote low-level \n, \r, ^P, and \0.
-        my (%h) = (n => "\n", r => "\r", 0 => "\0", "\cP" => "\cP");
+        my (%h) = (n => "\012", r => "\015", 0 => "\0", "\cP" => "\cP");
         $line =~ s/\cP([nr0\cP])/$h{$1}/g;
     }
     $line =~ s/\\([^\\a])/$1/g;  # dequote unnecessarily quoted characters.
@@ -595,6 +595,18 @@ sub list {
     $self->sl("LIST " . join(",", @_));
 }
 
+# -- #perl was here! --
+# fimmtiu assumes no responsibility for this quote. :-)
+# ---------------------
+# <china`blu> see, neo?
+# <china`blu> they're crowded
+# <china`blu> i bet some programmers/coders might be here
+#   <fimmtiu> Nope. No programmers here. We're just Larry Wall groupies.
+# <china`blu> come on
+# <Kilbaniar> Larry Wall isn't as good in bed as you'd think.
+# <Kilbaniar> For the record...
+
+
 # Sends a request for some server/user stats.
 # Takes 1 optional arg: the name of a server to request the info from.
 sub lusers {
@@ -625,6 +637,12 @@ sub me {
 
     $self->ctcp("ACTION", $_[0], $_[1]);
 }
+
+# -- #perl was here! --
+# *** china`blu (azizam@pm5-30.flinet.com) has joined channel #perl
+# <china`blu> hi guys
+# <china`blu> and girls
+#      <purl> I am NOT a lesbian!
 
 # Change channel and user modes (this one is easy... the handler is a bitch.)
 # Takes at least 2 args:  the target of the command (channel or nick)
@@ -753,21 +771,34 @@ sub new_chat {
 #                           - The address to connect to
 #                           - The port to connect on
 #                           - The size of the incoming file
+# For all of the above, an extra argument can be added at the end:
+#                         An open filehandle to save the incoming file into,
+#                         in globref, FileHandle, or IO::* form.
 sub new_get {
     my $self = shift;
-    my ($nick, $name, $address, $port, $size);
+    my ($nick, $name, $address, $port, $size, $handle);
 
     if (ref($_[0]) =~ /Event/) {
 	(undef, undef, $name, $address, $port, $size) = $_[0]->args;
 	$nick = $_[0]->nick;
+	$handle = $_[1] if defined $_[1];
     } elsif (ref($_[0]) eq "ARRAY") {
 	($nick, $name, $address, $port, $size) = @{$_[0]};
+	$handle = $_[1] if defined $_[1];
     } else {
-	($nick, $name, $address, $port, $size) = @_;
+	($nick, $name, $address, $port, $size, $handle) = @_;
+    }
+
+    unless (defined $handle and ref $handle and
+            (ref $handle eq "GLOB" or $handle->can('print')))
+    {
+	carp ("Filehandle argument to Connection->new_get() must be ".
+	      "a glob reference or object");
+	return;                                # is this behavior OK?
     }
 
     my $dcc = Net::IRC::DCC::GET->new($self, $nick, $address,
-				      $port, $size, $name);
+				      $port, $size, $name, $handle);
 
     $self->parent->addconn($dcc) if $dcc;
     return $dcc;
@@ -882,11 +913,11 @@ sub parse {
 	(length($self->{_frag}) + length($line)) > 0)  {
 	# grab any remnant from the last go and split into lines
 	my $chunk = $self->{_frag} . $line;
-	@lines = split /\n/, $chunk;
+	@lines = split /\012/, $chunk;
 	
 	# if the last line was incomplete, pop it off the chunk and
 	# stick it back into the frag holder.
-	$self->{_frag} = (substr($chunk, -1) ne "\n" ? pop @lines : '');
+	$self->{_frag} = (substr($chunk, -1) ne "\012" ? pop @lines : '');
 
     } else {
 	
@@ -1070,7 +1101,7 @@ sub parse {
 					    'error',
 					    (split /:/, $line, 2)[1]);
 	    }
-	} elsif ($line =~ /^Closing Link/) {
+	} elsif ($line =~ /^Closing [lL]ink/) {
 	    $ev = Net::IRC::Event->new( "disconnect",
 					$self->server,
 					'',

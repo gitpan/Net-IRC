@@ -217,4 +217,16 @@ Revision history for Perl extension Net::IRC.
 	- Added Event->dump method to spew the contents of an Event object
 	  to STDERR for debugging. This is a good thing.
 
+0.53   Fri Jun 12 20:25:02 CDT 1998
+	- Fixed compatibility problems with Net::IRC on MacPerl. Many thanks
+	  to Chris Nandor for bringing this to our attention...
+	- Jonathan Vasilis spotted an incompatibility between ircd 2.9 and
+	  Net::IRC, which has since been squashed. Thanks, Jon!
+	- One can now pass Connection->new_get() an open filehandle as the
+	  last argument to specify a particular filename for incoming DCC
+	  SENDs. Naturally, when you don't provide the extra argument, the
+	  behavior is the same as before.
+
+
+
 

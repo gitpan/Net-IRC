@@ -163,11 +163,14 @@ sub on_dcc {
     my $type = ($event->args)[1];
 
     if (uc($type) eq 'SEND') {
-	$self->new_get($event);
+	open TEST, ">/tmp/net-irc.dcctest"
+	    or do { warn "Can't open test file: $!"; return; };
+	$self->new_get($event, \*TEST);
+	print "Saving incoming DCC SEND to /tmp/net-irc.dcctest\n";
     } elsif(uc($type) eq 'CHAT') {
 	$self->new_chat($event);
     } else {
-	$self->printerr("Unknown DCC type: " . $type);
+	print STDERR ("Unknown DCC type: " . $type);
     }
 }
 

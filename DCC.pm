@@ -86,9 +86,9 @@ sub _getline {
 		
 	    } else {               # Line mode (CHAT)
 		# We're returning \n's 'cause DCC's need 'em
-		my @lines = split /\n/, $frag, -1;
-		$lines[-1] .= "\n";
-		$self->{_frag} = ($frag !~ /\n$/) ? pop @lines : '';
+		my @lines = split /\012/, $frag, -1;
+		$lines[-1] .= "\012";
+		$self->{_frag} = ($frag !~ /\012$/) ? pop @lines : '';
 		return (@lines);
 	    }
 	}
@@ -128,7 +128,7 @@ sub DESTROY {
 						       $self->{_socket},
 						       $self->{_type}));
 	$self->{_socket}->close;
-	$self->{_fh}->close if $self->{_fh};
+	close $self->{_fh} if $self->{_fh};
 	$self->{_parent}->{_parent}->parent->removeconn($self);
     }
 	
@@ -156,14 +156,15 @@ use Carp;
 
 sub new {
 
-    my ($class, $container, $nick, $address, $port, $size, $filename) = @_;    
+    my ($class, $container, $nick, $address,
+	$port, $size, $filename, $handle) = @_;
     my ($sock, $fh);
 
     # get the address into a dotted quad
     $address = &Net::IRC::DCC::Connection::fixaddr($address);
     return if $port < 1024 or not defined $address or $size < 1;
 
-    $fh = new IO::File ">$filename";
+    $fh = defined $handle ? $handle : IO::File->new(">$filename");
 
     unless(defined $fh) {
         carp "Can't open $filename for writing: $!";
@@ -173,9 +174,9 @@ sub new {
         return;
     }
 
-    binmode $fh;
-    $fh->autoflush(1);
-
+    binmode $fh;                     # I love this next line. :-)
+    ref $fh eq 'GLOB' ? select((select($fh), $|++)[0]) : $fh->autoflush(1);
+    
     $sock = new IO::Socket::INET( Proto    => "tcp",
 				  PeerAddr => "$address:$port" );
 
@@ -188,7 +189,7 @@ sub new {
 	
     } else {
         carp "Can't connect to $address: $!";
-        $fh->close();
+        close $fh;
         return;
     }
     
@@ -228,9 +229,9 @@ sub parse {
     my $line = $self->_getline($_[0], 'BLOCKS');
 
     next unless defined $line;
-    unless( $self->{_fh}->write($line, length($line)) ) {
+    unless(print {$self->{_fh}} $line) {
 	carp ("Error writing to " . $self->{_filename} . ": $!");
-	$self->{_fh}->close;
+	close $self->{_fh};
 	$self->{_parent}->parent->removeconn($self);
 	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
@@ -245,7 +246,7 @@ sub parse {
     # confirm the packet we've just recieved
     unless ( $self->{_socket}->send( pack("N", $self->{_bin}) ) ) {
 	carp "Error writing to DCC GET socket: $!";
-	$self->{_fh}->close;
+	close $self->{_fh};
 	$self->{_parent}->parent->removeconn($self);
 	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
@@ -259,7 +260,7 @@ sub parse {
     # If we close the socket, the select loop gets screwy because
     # it won't remove its reference to the socket.  weird.
     if ( $self->{_size} and $self->{_size} <= $self->{_bin} ) {
-	$self->{_fh}->close;
+	close $self->{_fh};
 	$self->{_parent}->parent->removeconn($self);
 	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
@@ -560,7 +561,7 @@ sub parse {
     
 	$self->{_bin} += length($line);
 	
-	return undef if $line eq "\n";
+	return undef if $line eq "\012";
 	$self->{_bout} += length($line);
 
 	$self->{_parent}->handler(Net::IRC::Event->new('chat',
