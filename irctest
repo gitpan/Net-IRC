@@ -16,7 +16,7 @@ my $irc = new Net::IRC;
 
 print "Creating connection to IRC server...\n";
 
-my $conn = $irc->newconn(Server   => ($ARGV[0]  ||  'irc.concentric.net'),
+my $conn = $irc->newconn(Server   => ($ARGV[0]  ||  'irc.prison.net'),
 			 Port     => 6667,
 			 Nick     => 'Boolahman',
 			 Ircname  => 'This bot brought to you by Net::IRC.',

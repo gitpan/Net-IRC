@@ -382,3 +382,8 @@ Revision history for Perl extension Net::IRC.
 	  Greg.
 	- Added some more Handlers, from Austnet, thanks to Andrew Macks
 	- Updated the documentation 
+
+0.72   Fri Dec 14 13:00:00 GMT 2001
+        - Added a patch from Anti Veeranna in Connection.pm to fix the
+          problems with IPv6 hostnames. Has not been tested with DCC.
+

@@ -24,7 +24,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.70";
+$VERSION = "0.72";
 
 
 
@@ -331,8 +331,8 @@ Net::IRC - Perl interface to the Internet Relay Chat protocol
 
 Welcome to Net::IRC, a work in progress. First intended to be a quick tool
 for writing an IRC script in Perl, Net::IRC has grown into a comprehensive
-Perl implementation of the IRC protocol (RFC 1459), supported and developed by
-several members of the EFnet IRC channel #perl.
+Perl implementation of the IRC protocol (RFC 1459), developed by several
+members of the EFnet IRC channel #perl, and maintained in channel #net-irc.
 
 There are 4 component modules which make up Net::IRC:
 

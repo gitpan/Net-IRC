@@ -1,4 +1,4 @@
-Net::IRC 0.71 README        Peter Sergeant        Mon Jul 02 00:00:00 GMT 2000
+Net::IRC 0.72 README        Travis Eckman         Mon Jul 02 00:00:00 GMT 2000
 ==============================================================================
 
 Table of Contents
@@ -23,7 +23,7 @@ Table of Contents
     Welcome to Net::IRC, a work in progress. First intended to be a quick tool
 for writing an IRC script in Perl, Net::IRC has grown into a comprehensive
 Perl implementation of the IRC protocol (RFC 1459), supported and developed by
-several members of the EFnet IRC channel #perl.
+several members of the EFnet IRC channel #net-irc.
 
     Please read the Changes file for details about recent updates, and the
 Bugs section of this document for notes about future improvements. This is
@@ -112,7 +112,7 @@ and are being worked on:
 	-> Channels with a ':' in confuse the module
 
      Some improvements are also planned. If you in an idea that isn't 
-implemented and isn't here, please send it again to pete@clueball.com
+implemented and isn't here, please send it again to jeek@jeek.net
 	-> PPM Version
 	-> Handling of unknow CTCP types
 
@@ -148,22 +148,18 @@ Without further ado... *ahem* :
     modify it under the terms of the Perl Artistic License, distributed with
     this module.
 
-    Any changes after 0.70 are copyright Peter Sergeant, and/or the people
+    Any changes after 0.70, but before 0.72, are copyright Peter Sergeant,
+    and/or the people who submitted them.
+
+    Any changes after 0.71 are copyright T.J. Eckman, and/or the people
     who submitted them.
 
 
 9. Developer Information
 ------------------------
 
-    Maintenance is now handled by Peter Sergeant <pete@clueball.com>. A
-homepage and mailing-list are soon to come, and will be able to be found
-at http://irc.clueball.com. If it's still July, they're probably not there
-yet. :)
+    Maintenance is now handled by T.J. Eckman <jeek@jeek.net>.
 
-    Submit bug reports and problems to Peter Sergeant <pete@clueball.com>.
-If you're looking for technical support for a Net::IRC script, your best
-bet is to ask on EFNet #perl or the comp.lang.perl.misc newsgroup.
-Thanks!
-
-
-
+    Submit bug reports and problems to T.J. Eckman <jeek@jeek.net>. If you're
+looking for technical support for a Net::IRC script, your best bet is to ask on
+EFNet #net-irc or the comp.lang.perl.misc newsgroup. Thanks!

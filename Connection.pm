@@ -13,9 +13,17 @@
 #                                                                   #
 #####################################################################
 #
-# Net-IRC 0.71
+# Net-IRC 0.72
 # ------------
 # 
+# T.J. Eckman's Changelog
+#
+# December 14th 2001:
+#       => Added patch to help with IPv6 handling
+#
+# Net-IRC 0.71
+# ------------
+#
 # Pete Sergeant's Changelog
 # 
 # July 1st 2001:
@@ -1112,7 +1120,12 @@ sub parse {
 		 /x)                      # That ought to do it for now...
 	{
 	    $line = substr $line, 1 if $line =~ /^:/;
-	    ($from, $line) = split ":", $line, 2;
+
+            # Patch submitted for v.0.72
+            # Fixes problems with IPv6 hostnames.
+            # Was: ($from, $line= split ":", $line, 2;
+	    ($from, $line) = $line =~ /^(?:|)(\S+\s+[^:]+):(.*)/;
+
 	    ($from, $type, @stuff) = split /\s+/, $from;
 	    $type = lc $type;
 	    
