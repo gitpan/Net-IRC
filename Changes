@@ -357,3 +357,20 @@ Revision history for Perl extension Net::IRC.
 	  machines... the DCC code wasn't paying attention to which
 	  interface the Connection object was attached to. Thanks, Richard!
 
+0.70   Mon May 29 11:52:26 PDT 2000
+	- Igor Shevchenko sent me a patch for DCC.pm which adds support
+	  for resuming DCC GETs. I haven't tested this feature, but the
+	  code looks right. :-)
+	- Finally fixed the pernicious "stripping the first colon" bug.
+	  Let's hope it stays dead this time! This may cause you to have to
+	  make a minor change to your CTCP handlers... but that's a small
+	  price to pay. (Shifting the first arg off should no longer be
+	  necessary.)
+	- Fixed an ugly DCC bug reported by Matthew Boehm. I can't
+	  believe I didn't notice this before! The fix uses Sys::Hostname
+	  to determine the machine's IP address; I'm not sure if this works
+	  on Windows, but it probably should. Let me know if not.
+	- Added Dave Schmitt's unignore patch, which fixes a big omission in
+	  Connection.pm -- you can now turn off ignores that you set with
+	  ignore(). Nifty!
+

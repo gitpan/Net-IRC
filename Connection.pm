@@ -19,6 +19,7 @@ package Net::IRC::Connection;
 
 use Net::IRC::Event;
 use Net::IRC::DCC;
+use Sys::Hostname;
 use Socket;
 use Symbol;
 use Carp;
@@ -31,15 +32,13 @@ use vars (                # with a few exceptions...
 
 
 # The names of the methods to be handled by &AUTOLOAD.
-# It seems the values ought to be useful *somehow*...
-my %autoloaded = (
-		  'ircname'  => undef,
-		  'port'     => undef,
-		  'username' => undef,
-		  'socket'   => undef,
-		  'verbose'  => undef,
-		  'parent'   => undef,
-          'hostname' => undef,
+my %autoloaded = ( 'ircname'  => undef,
+		   'port'     => undef,
+		   'username' => undef,
+		   'socket'   => undef,
+		   'verbose'  => undef,
+		   'parent'   => undef,
+                   'hostname' => undef,
 		 );
 
 # This hash will contain any global default handlers that the user specifies.
@@ -167,7 +166,7 @@ sub $meth {
 }
 EOSub
     
-    ## no reason to play this game every time
+    # no reason to play this game every time
     goto &$meth;
 }
 
@@ -209,6 +208,14 @@ sub connect {
 	    croak "No server address specified in connect()";
 	}
 	$self->server( $ENV{IRCSERVER} );
+    }
+    unless ($self->hostname) {
+      my $host = Sys::Hostname::hostname();
+      if ($host) {
+	$self->hostname( $host );
+      } else {
+	croak "Can't determine this machine's hostname! Please specify your hostname with the LocalAddr parameter to connect().";
+      }
     }
     unless ($self->nick) {
 	$self->nick($ENV{IRCNICK} || eval { scalar getpwuid($>) }
@@ -896,12 +903,14 @@ sub new_chat {
 #                           - The address to connect to
 #                           - The port to connect on
 #                           - The size of the incoming file
-# For all of the above, an extra argument can be added at the end:
+# For all of the above, an extra argument should be added at the end:
 #                         An open filehandle to save the incoming file into,
 #                         in globref, FileHandle, or IO::* form.
+# If you wish to do a DCC RESUME, specify the offset in bytes that you
+# want to start downloading from as the last argument.
 sub new_get {
     my $self = shift;
-    my ($nick, $name, $address, $port, $size, $handle);
+    my ($nick, $name, $address, $port, $size,  $offset, $handle);
 
     if (ref($_[0]) =~ /Event/) {
 	(undef, undef, $name, $address, $port, $size) = $_[0]->args;
@@ -922,8 +931,8 @@ sub new_get {
 	return;                                # is this behavior OK?
     }
 
-    my $dcc = Net::IRC::DCC::GET->new($self, $nick, $address,
-				      $port, $size, $name, $handle);
+    my $dcc = Net::IRC::DCC::GET->new( $self, $nick, $address, $port, $size,
+				       $name, $handle, $offset );
 
     $self->parent->addconn($dcc) if $dcc;
     return $dcc;
@@ -1069,7 +1078,7 @@ sub parse {
 					 substr($line, 5)
 					 ));
 	    
-	    # Had to move this up front to avoid a particularly pernicious bug.
+	# Had to move this up front to avoid a particularly pernicious bug.
 	} elsif ($line =~ /^NOTICE/) {
 	    $ev = Net::IRC::Event->new( "snotice",
 					$self->server,
@@ -1078,10 +1087,10 @@ sub parse {
 					(split /:/, $line, 2)[1] );
 	    
 	    
-	    # Spurious backslashes are for the benefit of cperl-mode.
-	    # Assumption:  all non-numeric message types begin with a letter
+	# Spurious backslashes are for the benefit of cperl-mode.
+	# Assumption:  all non-numeric message types begin with a letter
 	} elsif ($line =~ /^:?
-		 ([][}{\w\\\`^|\-]+?      # The nick (valid nickname chars)
+		 (?:[][}{\w\\\`^|\-]+?    # The nick (valid nickname chars)
 		  !                       # The nick-username separator
 		  .+?                     # The username
 		  \@)?                    # Umm, duh...
@@ -1122,7 +1131,7 @@ sub parse {
 	    study $from;
 	    foreach ( $self->ignore($itype), $self->ignore("all") ) {
 		$_ = quotemeta; s/\\\*/.*/g;
-		next PARSELOOP if $from =~ /$_/;
+		next PARSELOOP if $from =~ /$_/i;
 	    }
 	    
 	    # It used to look a lot worse. Here was the original version...
@@ -1272,8 +1281,9 @@ sub parse_ctcp {
     my ($odd, @foo) = (&dequote($line));
 
     while (($one, $two) = (splice @foo, 0, 2)) {
-
+ 
 	($one, $two) = ($two, $one) if $odd;
+	warn "ONE: \"$one\"   TWO: \"$two\"\n";
 
 	my ($ctype) = $one =~ /^(\w+)\b/;
 	my $prefix = undef;
@@ -1294,13 +1304,13 @@ sub parse_ctcp {
 	    # fimmtiu: Words cannot describe my joy. Sil, you kick ass.
 	    # fimmtiu: I was passing the wrong arg to Event::new()
  
-	    $self->handler(Net::IRC::Event->new($handler, $from, $stuff,
-						$handler, (split /\s/, $one)));
+	    $one =~ s/^$ctype //i;  # strip the CTCP type off the args
+	    $self->handler(Net::IRC::Event->new( $handler, $from, $stuff,
+						 $handler, $one ));
 	}
 
-	# This next line is very likely broken somehow. Sigh.
 	$self->handler(Net::IRC::Event->new($type, $from, $stuff, $type, $two))
-	    if ($two);
+	    if $two;
     }
     return 1;
 }
@@ -1311,16 +1321,16 @@ sub parse_ctcp {
 sub parse_num {
     my ($self, $line) = @_;
 
-    ## Figlet protection?  This seems to be a bit closer to the RFC than
-    ## the original version, which doesn't seem to handle :trailers quite
-    ## correctly. 
+    # Figlet protection?  This seems to be a bit closer to the RFC than
+    # the original version, which doesn't seem to handle :trailers quite
+    # correctly. 
     
     my ($from, $type, $stuff) = split(/\s+/, $line, 3);
     my ($blip, $space, $other, @stuff);
     while ($stuff) {
 	($blip, $space, $other) = split(/(\s+)/, $stuff, 2);
 	$space = "" unless $space;
-	$other = "" unless $other;    # I hate warnings. Thanks to jack velte...
+	$other = "" unless $other;       # Thanks to jack velte...
 	if ($blip =~ /^:/) {
 		push @stuff, $blip . $space . $other;
 		last;
@@ -1738,6 +1748,47 @@ sub trace {
 # <DragonFaX> IRC has enough bastards?
 #   <fimmtiu> New Frosted Lucky Bastards, they're magically delicious!
 #    <archon> they're after me lucky bastards!
+
+
+# This method submitted by Dave Schmitt <dschmi1@umbc.edu>. Thanks, Dave!
+sub unignore {
+    my $self = shift;
+
+    croak "Not enough arguments to unignore()" unless @_;
+
+    if (@_ == 1) {
+       if (exists $self->{_ignore}->{$_[0]}) {
+           return @{ $self->{_ignore}->{$_[0]} };
+       } else {
+           return ();
+       }
+    } elsif (@_ > 1) {     # code defensively, remember...
+       my $type = shift;
+
+       # I moved this part further down as an Obsessive Efficiency
+       # Initiative. It shouldn't be a problem if I do _parse right...
+       # ... but those are famous last words, eh?
+       unless (grep {$_ eq $type}
+               qw(public msg ctcp notice channel nick other all)) {
+           carp "$type isn't a valid type to unignore()";
+            return;                                                    
+       }
+
+       if ( exists $self->{_ignore}->{$type} )  {
+           # removes all specifed entries ala _Perl_Cookbook_ recipe 4.7
+           my @temp = @{$self->{_ignore}->{$type}};
+           @{$self->{_ignore}->{$type}}= ();
+           my %seen = ();
+           foreach my $item (@_) { $seen{$item}=1 }
+           foreach my $item (@temp) {
+               push(@{$self->{_ignore}->{$type}}, $item)
+                   unless ($seen{$item});
+           }
+      } else  {
+           carp "no ignore entry for $type to remove";
+       }
+    }
+}
 
 
 # Requests userhost info from the server.

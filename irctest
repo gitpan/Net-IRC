@@ -207,10 +207,7 @@ sub on_nick_taken {
 sub on_action {
     my ($self, $event) = @_;
     my ($nick, @args) = ($event->nick, $event->args);
-    
-    # :FIXME: this should not be necessary:
-    shift @args;
-    
+
     print "* $nick @args\n";
 }
 

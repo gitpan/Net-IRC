@@ -36,25 +36,26 @@ sub args {
     my $self = shift;
 
     if (@_) {
-		my (@q, $i, $ct) = @_;       # This line is solemnly dedicated to \mjd.
+        my (@q, $i, $ct) = @_;       # This line is solemnly dedicated to \mjd.
 
-		$self->{'args'} = [ ];
-		while (@q) {
-		    $i = shift @q;
-		    next unless defined $i;
+        $self->{'args'} = [ ];
+        while (@q) {
+            $i = shift @q;
+            next unless defined $i;
 
-		    if ($i =~ /^:/ and $ct) {                # Concatenate :-args.
-				$i = join ' ', (substr($i, 1), @q);
-				push @{$self->{'args'}}, $i;
-				last;
-		    }
-		    push @{$self->{'args'}}, $i;
-		    $ct++;
-		}
+            if ($i =~ /^:/ and $ct) {                # Concatenate :-args.
+                 $i = join ' ', (substr($i, 1), @q);
+                 push @{$self->{'args'}}, $i;
+                 last;
+            }
+            push @{$self->{'args'}}, $i;
+            $ct++;
+        }
     }
 
     return @{$self->{'args'}};
 }
+
 
 # Dumps the contents of an event to STDERR so you can see what's inside.
 # Takes no args.
@@ -155,7 +156,6 @@ sub new {
     #   \mjd: The my is a mighty keyword, with abcessed anal glands.
     #   \mjd: Apologies to Mr. Longfellow.
 
-
     my $self = { 'type'   =>  $_[0],
 		 'from'   =>  $_[1],
 		 'to'     =>  ref($_[2]) eq 'ARRAY'  ?  $_[2]  :  [ $_[2] ],
@@ -165,7 +165,6 @@ sub new {
     
     bless $self, $class;
     
-    # Take your encapsulation and shove it!
     if ($self->{'type'} !~ /\D/) {
 		$self->{'type'} = $self->trans($self->{'type'});
     } else {

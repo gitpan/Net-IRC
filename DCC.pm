@@ -181,7 +181,7 @@ use strict;
 sub new {
 
     my ($class, $container, $nick, $address,
-        $port, $size, $filename, $handle) = @_;
+	$port, $size, $filename, $handle, $offset) = @_;
     my ($sock, $fh);
 
     # get the address into a dotted quad
@@ -220,7 +220,7 @@ sub new {
     $sock->autoflush(1);
 
     my $self = {
-        _bin        =>  0,      # Bytes we've recieved thus far
+	_bin        =>  defined $offset ? $offset : 0, # bytes recieved so far
         _bout       =>  0,      # Bytes we've sent
         _connected  =>  1,
 	_debug      =>  $container->debug,
@@ -305,6 +305,26 @@ sub parse {
                                                    $self ));
 }
 
+sub filename {
+    return shift->{_filename};
+}
+
+sub size {
+    return shift->{_size};
+}
+
+sub close {
+    my ($self, $sock) = @_;
+    $self->{_fh}->close;
+    $self->{_parent}->parent->removeconn($self);
+    $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+                                                  $self->{_nick},
+                                                  $self->{_socket},
+                                                  $self->{_type}));
+    $self->{_socket}->close;
+    return;
+}
+
 # -- #perl was here! --
 #  \merlyn: I can't type... she created a numbner of very good drinks
 #  \merlyn: She's still at work
@@ -322,7 +342,6 @@ package Net::IRC::DCC::SEND;
 
 use IO::File;
 use IO::Socket;
-use Sys::Hostname;
 use Carp;
 use strict;
 
@@ -504,7 +523,6 @@ package Net::IRC::DCC::CHAT;
 @Net::IRC::DCC::CHAT::ISA = qw(Net::IRC::DCC::Connection);
 
 use IO::Socket;
-use Sys::Hostname;
 use Carp;
 use strict;
 
@@ -525,7 +543,6 @@ sub new {
         }
 
 	$sock->autoflush(1);
-
         $container->ctcp('DCC CHAT', $nick, 'chat',
                          unpack("N",inet_aton($container->hostname)),
 						        $sock->sockport());
