@@ -1,4 +1,4 @@
-Net::IRC 0.53    README       Dennis Taylor       Fri Jun 12 20:25:02 CDT 1998
+Net::IRC 0.54    README       Dennis Taylor       Sun Jun 28 18:49:03 CDT 1998
 ==============================================================================
 
 Table of Contents
@@ -32,8 +32,8 @@ enough, so bear with us.
 
     PLEASE send the authors feedback and advice. Contact information can be
 found at the end of this file. Writing really annoying bots with this module
-is punishable by having merlyn sing "The Rainbow Connection" to you, so watch
-it!
+is punishable by having merlyn sing "The Rainbow Connection" to you... watch
+your step.
 
 
 
@@ -136,8 +136,7 @@ involved...
     This is standard legal boilerplate stuff, I suppose. The names on the
 copyright notice do NOT reflect in any way the time and effort put into this
 project by lots of studly people, but if we did that, we'd have to start a
-small corporation to handle them all in case of legal problems. :-)   All I'm
-saying is, this doesn't mean much, so don't take it personally.
+small corporation to handle them all in case of legal problems. :-)
 
 Without further ado... *ahem* :
 

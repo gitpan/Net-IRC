@@ -6,8 +6,7 @@ Things to do for the next revision:
 	Closing Link: Natsune[i.got.net] by NewBrunswick.NJ.US.Undernet.Org
         (Excess Flood)
 
-  - Allow a user's callbacks to give an open filehandle to DCC::GET, so that
-    they can choose where to save it.
+  - Write more documentation, or at least the event list for Event.pm...
 
   - Fix Connection->quit() to not close the connection so quickly.
 

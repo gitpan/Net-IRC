@@ -7,10 +7,11 @@ if ($] < 5) {
     my $years = (localtime)[5] - 91;
     print <<"ARGH";
                *** REALLY BIG FAT FATAL ERROR ***
-  Holy antiquities, Batman! You're using a version of Perl that's
-  over $years years old! Sheesh. Please download and install Perl 5.004
-  or better from http://www.perl.com ...Net::IRC won't even consider
-  running on this old lemon.
+
+    Hate to bring this up, but you're trying to run Net::IRC
+    on a version of Perl that's over $years years old. Are you
+    kidding? Come on, upgrade already... Net::IRC won't even
+    consider running on this hoary old version.
 
 ARGH
 
@@ -20,11 +21,12 @@ ARGH
 unless ($] >= 5.004) {
     print <<"ZOT";
                *** REALLY BIG FAT FATAL ERROR ***
-  Net::IRC requires Perl version 5.004 or higher. Please complain
-    to your system administrator until he installs it. Sorry...
+
+    Net::IRC requires Perl version 5.004 or higher. Please complain
+    to your system administrator until sie installs it. Sorry...
   
 ZOT
-    
+
     exit 1;
 }
 

@@ -686,10 +686,10 @@ details about this module.
 
 =head1 AUTHORS
 
-Conceived and initially developed by Greg Bacon (gbacon@adtran.com) and
-Dennis Taylor (corbeau@execpc.com).
+Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt> and
+Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
 
-Ideas and large amounts of code donated by Nat "King" Torkington (gnat@frii.com).
+Ideas and large amounts of code donated by Nat "King" Torkington E<lt>gnat@frii.comE<gt>.
 
 Currently being hacked on, hacked up, and worked over by the members of the
 Net::IRC developers mailing list. For details, see
@@ -697,20 +697,8 @@ http://www.execpc.com/~corbeau/irc/list.html .
 
 =head1 URL
 
-The following identical pages contain up-to-date source and information about
-the Net::IRC project:
-
-=over
-
-=item *
-
-http://www.execpc.com/~corbeau/irc/
-
-=item *
-
-http://betterbox.net/fimmtiu/irc/
-
-=back
+Up-to-date source and information about the Net::IRC project can be found at
+http://netirc.betterbox.net/ .
 
 =head1 SEE ALSO
 

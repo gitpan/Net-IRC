@@ -227,6 +227,15 @@ Revision history for Perl extension Net::IRC.
 	  SENDs. Naturally, when you don't provide the extra argument, the
 	  behavior is the same as before.
 
-
+0.54   Sun Jun 28 18:49:03 CDT 1998
+	- IRC::addfh() now requires only two arguments. In the absence of
+	  any indication of what you're using the filehandle for, it will
+	  assume you're reading from it. Previous behavior is, of course,
+	  unchanged.
+	- Connection::pr() finally got diked out. Took long enough...
+	- Minor doc fixes all over and cosmetic changes to irctest.
+	- List of events added to Event.pm documentation (finally!).
+	- The add_*handler functions will accept upper, lower, or mixed-case
+	  event names in the same fashion now.
 
 

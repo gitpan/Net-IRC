@@ -23,7 +23,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.53";
+$VERSION = "0.54";
 
 
 #####################################################################
@@ -44,7 +44,7 @@ sub addconn {
 # Takes 3 args:  a filehandle or socket to add
 #                a coderef (can be undef) to pass the ready filehandle to for
 #                  user-specified reading/writing/error handling.
-#                a string with r/w/e flags, similar to C's fopen() syntax,
+#    (optional)  a string with r/w/e flags, similar to C's fopen() syntax,
 #                  except that you can combine flags (i.e., "rw").
 #    (optional)  an object that the coderef is a method of
 sub addfh {
@@ -61,14 +61,18 @@ sub addfh {
     # <sonic_1> do 'mv $x ~$x/Mailbox;chown $x.mail ~$x/Mailbox';
     # <sonic_1> fi
     
-    foreach $letter (split(//, lc $flag)) {
-	if ($letter eq 'r') {
-	    $self->{_read}->add( $fh );
-	} elsif ($letter eq 'w') {
-	    $self->{_write}->add( $fh );
-	} elsif ($letter eq 'e') {
-	    $self->{_error}->add( $fh );
+    if ($flag) {
+	foreach $letter (split(//, lc $flag)) {
+	    if ($letter eq 'r') {
+		$self->{_read}->add( $fh );
+	    } elsif ($letter eq 'w') {
+		$self->{_write}->add( $fh );
+	    } elsif ($letter eq 'e') {
+		$self->{_error}->add( $fh );
+	    }
 	}
+    } else {
+	$self->{_read}->add( $fh );
     }
 
     $self->{_connhash}->{$fh} = [ $code, $obj ];
@@ -305,7 +309,7 @@ only argument passed to a handler function.
 Net::IRC::DCC
 
 The analogous object to Connection.pm for connecting, sending and
-retrieving with the DCC protocol. Instances of DCC>pm are invoked from
+retrieving with the DCC protocol. Instances of DCC.pm are invoked from
 C<Connection-E<gt>new_{send,get,chat}> in the same way that
 C<IRC-E<gt>newconn> invokes C<Connection-E<gt>new>. This will make more
 sense later, we promise.
@@ -641,13 +645,13 @@ B<Optional:> A new value for the C<select()> timeout for this IRC object.
 
 =item *
 
-Conceived and initially developed by Greg Bacon (gbacon@adtran.com)
-and Dennis Taylor (corbeau@execpc.com).
+Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt>
+and Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
 
 =item *
 
 Ideas and large amounts of code donated by Nat "King" Torkington
-(gnat@frii.com).
+E<lt>gnat@frii.comE<gt>.
 
 =item *
 

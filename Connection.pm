@@ -88,7 +88,7 @@ sub _add_generic_handler
 	    }
 	}
 
-	$hash_ref->{$ev} = [ $ref, $rp ];
+	$hash_ref->{lc $ev} = [ $ref, $rp ];
     }
     return 1;
 }
@@ -1205,69 +1205,19 @@ sub peer {
     return ($self->server(), "IRC connection");
 }
 
-# Prints stuff to the appropriate spot, formatted as per $self->format().
-# Takes at least 2 args:  a boolean value indicating whether it's an error
-#                         the message to be printed
-#            (optional)   up to 10 custom things to be printed
-sub _pr {
-    my ($self, $err, $event, @custom) = @_;
-    my $line;
-    
-    return 1 unless defined $event;
-    if (ref $event eq "Net::IRC::Event") {
-	$line = $self->format($event->type);
-	
-	# Thanks to Abigail (abigail@fnx.com) for the idea for this clever bit.
-	# I'm sure it can be made more efficient, though. Any suggestions?
-	# I'm too tired right now to think of 'em myself. :)
-	
-	my (%h) = ( 'f' => $event->from,
-		    'n' => $event->nick,
-		    'u' => $event->user,
-		    'h' => $event->host,
-		    'c' => $event->type,
-		    'm' => join(" ", ($event->args())),
-		    '0' => $custom[0],
-		    '1' => $custom[1],
-		    '2' => $custom[2],
-		    '3' => $custom[3],
-		    '4' => $custom[4],
-		    '5' => $custom[5],
-		    '6' => $custom[6],
-		    '7' => $custom[7],
-		    '8' => $custom[8],
-		    '9' => $custom[9],
-		    's' => $self->server,
-		    't' => join(",", ($event->to())),
-		    'd' => scalar localtime,
-		    'D' => time,
-		    '%' => '%'
-		   );
-	
-	$line =~ s/\%([0-9Dfuhmdcnst%])/$h{$1}/g;
-    } else {
-	$line = $event;
-    }
-    
-    print {$err ? \*STDERR : \*STDOUT} $line, "\n";
-}
 
 # Prints a message to the defined error filehandle(s).
-# Takes at least 1 arg:  the Event object to print
-#           (optional)   up to 10 custom fields to pass to the formatter
+# No further description should be necessary.
 sub printerr {
-    my $self = shift;
-
-    $self->_pr(1, @_);
+    shift;
+    print STDERR @_, "\n";
 }
 
-# Prints a message to the defined output filehandle(s).
-# Takes at least 1 arg:  the Event object to print
-#           (optional)   up to 10 custom fields to pass to the formatter
-sub print {
-        my $self = shift;
 
-	$self->_pr(0, @_);
+# Prints a message to the defined output filehandle(s).
+sub print {
+    shift;
+    print STDOUT @_, "\n";
 }
 
 # Sends a message to a channel or person.
@@ -1281,17 +1231,17 @@ sub privmsg {
     my ($self, $to) = splice @_, 0, 2;
 
     unless (@_) {
-	croak "Not enough arguments to privmsg()";
+	croak 'Not enough arguments to privmsg()';
     }
-    
-    my $buf = join "", @_;
+
+    my $buf = join '', @_;
     my $length = $self->{_maxlinelen} - 11 - length($to);
     my $line;
 
     # -- #perl was here! --
-    #    <v0id_> i really haven't dug into Net:IRC yet.
+    #    <v0id_> i really haven't dug into Net::IRC yet.
     #    <v0id_> hell, i still need to figure out how to make it just say
-    #            something on its current channell...
+    #            something on its current channel...
     #  <fimmtiu> $connection->privmsg('#channel', "Umm, hi.");
     #    <v0id_> but you have to know the channel already eh?
     #  <fimmtiu> Yes. This is how IRC works. :-)
@@ -1649,10 +1599,10 @@ details about this module.
 
 =head1 AUTHORS
 
-Conceived and initially developed by Greg Bacon (gbacon@adtran.com) and
-Dennis Taylor (corbeau@execpc.com).
+Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt> and
+Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
 
-Ideas and large amounts of code donated by Nat "King" Torkington (gnat@frii.com).
+Ideas and large amounts of code donated by Nat "King" Torkington E<lt>gnat@frii.comE<gt>.
 
 Currently being hacked on, hacked up, and worked over by the members of the
 Net::IRC developers mailing list. For details, see
@@ -1660,20 +1610,8 @@ http://www.execpc.com/~corbeau/irc/list.html .
 
 =head1 URL
 
-The following identical pages contain up-to-date source and information about
-the Net::IRC project:
-
-=over
-
-=item *
-
-http://www.execpc.com/~corbeau/irc/
-
-=item *
-
-http://betterbox.net/fimmtiu/irc/
-
-=back
+Up-to-date source and information about the Net::IRC project can be found at
+http://netirc.betterbox.net/ .
 
 =head1 SEE ALSO
 

@@ -55,9 +55,9 @@ my @zippy = (
 sub on_connect {
 	my $self = shift;
 	
-	$self->print("Joining #IRC.pm...");
+	print "Joining #IRC.pm...\n";
 	$self->join("#IRC.pm");
-	$self->privmsg("#IRC.pm", &pickrandom(@zippy));
+	$self->privmsg("#IRC.pm", &pickrandom());
 }
 
 # Handles some messages you get when you connect
@@ -66,7 +66,7 @@ sub on_init {
     my (@args) = ($event->args);
     shift (@args);
     
-    $self->print("*** @args");
+    print "*** @args\n";
 }
 
 # What to do when someone leaves a channel the bot is on.
@@ -94,10 +94,9 @@ sub on_join {
 sub on_msg {
     my ($self, $event) = @_;
     my ($nick) = $event->nick;
-    my ($arg) = $event->args;
 
-    $self->print("*$nick*  $arg");
-    $self->privmsg($nick, &pickrandom(@zippy));   # Say a Zippy quote.
+    print "*$nick*  ", ($event->args), "\n";
+    $self->privmsg($nick, &pickrandom());   # Say a Zippy quote.
 }
 
 # What to do when we receive channel text.
@@ -105,11 +104,11 @@ sub on_public {
     my ($self, $event) = @_;
     my ($to) = $event->to;
     my ($nick, $mynick) = ($event->nick, $self->nick);
-    my ($arg) = $event->args;
+    my ($arg) = ($event->args);
 
-    $self->print("<$nick:$to>  $arg");
+    print "<$nick:$to>  $arg\n";
     if ($arg =~ /$mynick/i) {                   # Say a Zippy quote if our nick
-	$self->privmsg($to, &pickrandom(@zippy)); # appears in the message.
+	$self->privmsg($to, &pickrandom());     # appears in the message.
     }
 
     if ($arg =~ /Go away/i) {       # Tell him to leave, and he does.
@@ -139,12 +138,10 @@ sub on_public {
 # What to do when we receive a message via DCC CHAT.
 sub on_chat {
     my ($self, $event) = @_;
-    my ($nick) = $event->nick;
     my ($sock) = $event->to;
-    my ($arg)  = $event->args;
 
-    $self->print("*$nick*  $arg");
-    $self->privmsg($sock, &pickrandom(@zippy));   # Say a Zippy quote.
+    print '*' . $event->nick . '* ' . ($event->args), "\n";
+    $self->privmsg($sock, &pickrandom());   # Say a Zippy quote.
 }
 
 # Prints the names of people in a channel when we enter.
@@ -180,7 +177,7 @@ sub on_ping {
     my $nick = $event->nick;
 
     $self->ctcp_reply($nick, join (' ', ($event->args)));
-    $self->print("*** CTCP PING request from $nick received");
+    print "*** CTCP PING request from $nick received\n";
 }
 
 # Gives lag results for outgoing PINGs.
@@ -190,7 +187,7 @@ sub on_ping_reply {
     my ($nick) = $event->nick;
 
     $args = time - $args;
-    $self->print("*** CTCP PING reply from $nick: $args sec.");
+    print "*** CTCP PING reply from $nick: $args sec.\n";
 }
 
 # Change our nick if someone stole it.
@@ -212,7 +209,7 @@ sub on_action {
 }
 
 sub pickrandom {   # Choose a random quote from the @zippy array.
-    return $_[ rand scalar @_ ];
+    return $zippy[ rand scalar @zippy ];
 }
 
 
