@@ -349,3 +349,11 @@ Revision history for Perl extension Net::IRC.
 	  select loop several revisions ago which broke the proper behavior
 	  of schedule()ed events. Sigh.
 
+0.63   Sun Jan 30 18:50:28 PST 2000
+	- Harald Paulsen spent a good deal of time and effort hunting down a
+	  couple of really dumb bugs in Connection::parse(). Replaced a couple
+	  of "return"s with "next"s and it's all good. Wee!
+	- Richard-William Loerakker sent me a patch for DCC on multihomed
+	  machines... the DCC code wasn't paying attention to which
+	  interface the Connection object was attached to. Thanks, Richard!
+

@@ -39,6 +39,7 @@ my %autoloaded = (
 		  'socket'   => undef,
 		  'verbose'  => undef,
 		  'parent'   => undef,
+          'hostname' => undef,
 		 );
 
 # This hash will contain any global default handlers that the user specifies.
@@ -188,12 +189,12 @@ sub away {
 #   (nick, username, ircname). Will close current connection if already open.
 sub connect {
     my $self = shift;
-    my ($hostname, $password, $sock);
+    my ($password, $sock);
 
     if (@_) {
 	my (%arg) = @_;
 
-	$hostname = $arg{'LocalAddr'} if exists $arg{'LocalAddr'};
+	$self->hostname($arg{'LocalAddr'}) if exists $arg{'LocalAddr'};
 	$password = $arg{'Password'} if exists $arg{'Password'};
 	$self->nick($arg{'Nick'}) if exists $arg{'Nick'};
 	$self->port($arg{'Port'}) if exists $arg{'Port'};
@@ -201,7 +202,7 @@ sub connect {
 	$self->ircname($arg{'Ircname'}) if exists $arg{'Ircname'};
 	$self->username($arg{'Username'}) if exists $arg{'Username'};
     }
-    
+
     # Lots of error-checking claptrap first...
     unless ($self->server) {
 	unless ($ENV{IRCSERVER}) {
@@ -247,9 +248,9 @@ sub connect {
     # astonishingly gimpy IO::Socket. Talk about letting the interface
     # get in the way of the functionality...
 
-    if ($hostname) {
-	unless (bind( $sock, sockaddr_in( 0, inet_aton($hostname) ) )) {
-	    carp "Can't bind to $hostname: $!";
+    if ($self->hostname) {
+	unless (bind( $sock, sockaddr_in( 0, inet_aton($self->hostname) ) )) {
+	    carp "Can't bind to ", $self->hostname, ": $!";
 	    $self->error(1);
 	    return;
 	}
@@ -1051,7 +1052,7 @@ sub parse {
 	return;
     }
     
-    foreach $line (@lines) {
+    PARSELOOP: foreach $line (@lines) {
 		
 	# Clean the lint filter every 2 weeks...
 	$line =~ s/[\012\015]+$//;
@@ -1121,7 +1122,7 @@ sub parse {
 	    study $from;
 	    foreach ( $self->ignore($itype), $self->ignore("all") ) {
 		$_ = quotemeta; s/\\\*/.*/g;
-		return 1 if $from =~ /$_/;
+		next PARSELOOP if $from =~ /$_/;
 	    }
 	    
 	    # It used to look a lot worse. Here was the original version...
@@ -1138,7 +1139,7 @@ sub parse {
 	    # Now ship it off to the appropriate handler and forget about it.
 	    if ( $itype eq "ctcp" ) {       # it's got CTCP in it!
 		$self->parse_ctcp($type, $from, $stuff[0], $line);
-		return 1;
+		next;
 		
 	    }  elsif ($type eq "public" or $type eq "msg"   or
 		      $type eq "notice" or $type eq "mode"  or

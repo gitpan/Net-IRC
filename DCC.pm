@@ -358,7 +358,7 @@ sub new {
     }    
 
     $container->ctcp('DCC SEND', $nick, $filename, 
-                     unpack("N",inet_aton(hostname())),
+                     unpack("N",inet_aton($container->hostname())),
 		     $sock->sockport(), $size);
 
     $sock->autoflush(1);
@@ -526,8 +526,9 @@ sub new {
 
 	$sock->autoflush(1);
 
-        $container->ctcp('DCC CHAT', $nick, 'chat',  
-                         unpack("N",inet_aton(hostname)), $sock->sockport());
+        $container->ctcp('DCC CHAT', $nick, 'chat',
+                         unpack("N",inet_aton($container->hostname)),
+						        $sock->sockport());
 
 	$self = {
 	    _bin        =>  0,      # Bytes we've recieved thus far
