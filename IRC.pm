@@ -11,7 +11,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: IRC.pm,v 1.2 1999/04/08 16:14:59 corbeau Exp $
+# $Id: IRC.pm,v 1.3 1999/08/12 21:07:08 corbeau Exp $
 
 
 package Net::IRC;
@@ -24,7 +24,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.60";
+$VERSION = "0.61";
 
 
 

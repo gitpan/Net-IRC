@@ -11,7 +11,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: DCC.pm,v 1.2 1999/04/08 16:14:56 corbeau Exp $
+# $Id: DCC.pm,v 1.4 1999/08/27 03:30:14 corbeau Exp $
 
 package Net::IRC::DCC;
 
@@ -38,6 +38,7 @@ package Net::IRC::DCC::Connection;
 
 use Carp;
 use Socket;  # need inet_ntoa...
+use strict;
 
 sub fixaddr {
     my ($address) = @_;
@@ -60,6 +61,10 @@ sub bytes_in {
 
 sub bytes_out {
     return shift->{_bout};
+}
+
+sub nick {
+    return shift->{_nick};
 }
 
 sub socket {
@@ -113,6 +118,7 @@ sub _getline {
 							   $self->{_socket},
 							   $self->{_type}));
 	    $self->{_parent}->parent->removefh($sock);
+	    $self->{_socket}->close;
 	    $self->{_fh}->close if $self->{_fh};
 	    return;
 	}
@@ -127,6 +133,7 @@ sub _getline {
 						       $self->{_socket},
 						       $self->{_type}));
 	$self->{_parent}->parent->removefh($sock);
+	$self->{_socket}->close;
 	$self->{_fh}->close if $self->{_fh};
 	return;
     }
@@ -167,6 +174,7 @@ package Net::IRC::DCC::GET;
 
 use IO::Socket;
 use Carp;
+use strict;
 
 @Net::IRC::DCC::GET::ISA = qw(Net::IRC::DCC::Connection);
 
@@ -254,6 +262,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
 	return;
     }
     
@@ -269,6 +278,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
 	return;
     }
     
@@ -284,6 +294,7 @@ sub parse {
                                                        $self->{_nick},
                                                        $self->{_socket},
                                                        $self->{_type}));
+	$self->{_socket}->close;
         return;
     }
     
@@ -313,6 +324,7 @@ use IO::File;
 use IO::Socket;
 use Sys::Hostname;
 use Carp;
+use strict;
 
 sub new {
 
@@ -410,6 +422,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
 	return;
     }
     
@@ -428,6 +441,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
         return;
     } 
 
@@ -446,6 +460,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
         return;
     }
 
@@ -460,6 +475,7 @@ sub parse {
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
+	$self->{_socket}->close;
 	return;
     }
 
@@ -491,6 +507,7 @@ package Net::IRC::DCC::CHAT;
 use IO::Socket;
 use Sys::Hostname;
 use Carp;
+use strict;
 
 sub new {
 
@@ -642,6 +659,7 @@ package Net::IRC::DCC::Accept;
 @Net::IRC::DCC::Accept::ISA = qw(Net::IRC::DCC::Connection);
 use Carp;
 use Socket;   # we use a lot of Socket functions in parse()
+use strict;
 
 
 sub new {
@@ -688,6 +706,7 @@ sub parse {
 							   $self->{_nick},
 							   $self->{_socket},
 							   $self->{_type}));
+	    $self->{_socket}->close;
 	    return;
 	}
     }

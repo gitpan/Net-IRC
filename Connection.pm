@@ -12,7 +12,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: Connection.pm,v 1.2 1999/04/08 16:14:54 corbeau Exp $
+# $Id: Connection.pm,v 1.3 1999/08/12 21:07:02 corbeau Exp $
 
 
 package Net::IRC::Connection;

@@ -334,3 +334,10 @@ Revision history for Perl extension Net::IRC.
 	  one, everybody. Unlike the previous bug, this one has no excuse.
 	- Thanks to Jack Velte for pointing out the cause of some spurious
 	  "uninitialized value" warnings in Connection.pm.
+
+0.61   Thu Aug 26 22:29:39 EDT 1999
+	- Shizukesa pointed out the root cause of a bug that was sending duplicate
+	  dcc_close events when DCC connections shut down. Now fixed. He kicks
+	  ass. :-)  Added a $dcc->nick accessor method, too, as per his excellent
+	  suggestion.
+
