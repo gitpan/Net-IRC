@@ -309,5 +309,18 @@ Revision history for Perl extension Net::IRC.
 	- Added a "Password" parameter to the connect() method, for bots on
 	  restricted servers. Updated the docs to reflect this.
 
-
+0.59   Fri Jun 18 10:52:44 CDT 1999
+	- The default timeout for the select loop was changed from 1 to undef.
+	  If you're calling Net::IRC via do_one_loop instead of with start(),
+	  then you'll probably experience weird freezes with this. Tough. Do a
+	  $irc->timeout(0); to make your program run better than ever before, if
+	  you weren't already.
+	- Cleaned up some bogus ugly code here and there. Don't mind me, I'm
+	  just tidying up...
+	- Added Tom "tnalpggE" Monroe's nifty patch, which gives us away, rehash, 
+	  summon, and restart methods, and improves parsing of numeric events.
+	- Andrew Mackenzie kicks ass. After unsuccessfully nagging me to get off
+	  my lazy ass and fix a DCC bug, he did it himself. DCC receive now
+	  works again. h3o++ !
+	- Fixed a bogosity in Connection->mode(). Don't ask.
 

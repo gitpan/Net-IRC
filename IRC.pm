@@ -24,7 +24,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.58";
+$VERSION = "0.59";
 
 
 
@@ -171,7 +171,7 @@ sub new {
 		'_queue'    => {},
 		'_qid'      => 'a',
 		'_read'     => IO::Select->new(),
-		'_timeout'  =>  1,
+		'_timeout'  => undef,
 		'_write'    => IO::Select->new(),
 	    };
 
@@ -719,7 +719,7 @@ B<Optional:> A new value for the C<select()> timeout for this IRC object.
 =item *
 
 Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt>
-and Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
+and Dennis Taylor E<lt>dennis@funkplanet.comE<gt>.
 
 =item *
 

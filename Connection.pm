@@ -170,6 +170,14 @@ EOSub
     goto &$meth;
 }
 
+
+# Toggles away-ness with the server.  Optionally takes an away message.
+sub away {
+    my $self = shift;
+    $self->sl("AWAY" . ($_[0] ? " :$_[0]" : ""));
+}
+
+
 # -- #perl was here! --
 # <crab> to irc as root demonstrates about the same brains as a man in a
 #        thunderstorm waving a lightning rod and standing in a copper tub
@@ -753,16 +761,16 @@ sub me {
 
 
 # Change channel and user modes (this one is easy... the handler is a bitch.)
-# Takes at least 2 args:  the target of the command (channel or nick)
-#                         the mode string (i.e., "-boo+i")
+# Takes at least 1 arg:  the target of the command (channel or nick)
+#             (optional)  the mode string (i.e., "-boo+i")
 #             (optional)  operands of the mode string (nicks, hostmasks, etc.)
 sub mode {
     my $self = shift;
 
-    unless (@_ > 1) {
+    unless (@_ >= 1) {
 	croak "Not enough arguments to mode()";
     }
-    $self->sl("MODE $_[0] $_[1] " . CORE::join(" ", @_[2..$#_]));
+    $self->sl("MODE $_[0] " . CORE::join(" ", @_[1..$#_]));
 }
 
 # -- #perl was here! --
@@ -1166,6 +1174,12 @@ sub parse {
 					   '',
 					   $type,
 					   $line);   # Ahh, what the hell.
+	    } elsif ($type eq "wallops") {
+		$ev = Net::IRC::Event->new($type,
+					   $from,
+					   '',
+					   $type,
+					   $line);  
 	    } else {
 	       carp "Unknown event type: $type";
 	    }
@@ -1296,7 +1310,23 @@ sub parse_ctcp {
 sub parse_num {
     my ($self, $line) = @_;
 
-    my ($from, $type, @stuff) = split /\s+/, $line;
+    ## Figlet protection?  This seems to be a bit closer to the RFC than
+    ## the original version, which doesn't seem to handle :trailers quite
+    ## correctly. 
+    
+    my ($from, $type, $stuff) = split(/\s+/, $line, 3);
+    my ($blip, $space, $other, @stuff);
+    while ($stuff) {
+	($blip, $space, $other) = split(/(\s+)/, $stuff, 2);
+	if ($blip =~ /^:/) {
+		push @stuff, $blip . $space . $other; 
+		last;
+	} else {
+	    push @stuff, $blip;
+	    $stuff = $other;
+	}
+    }
+
     $from = substr $from, 1 if $from =~ /^:/;
 
     return Net::IRC::Event->new( $type,
@@ -1436,6 +1466,23 @@ sub quit {
     
     $self->sl("QUIT :" . (defined $_[0] ? $_[0] : "Leaving"));
     return 1;
+}
+
+# As per the RFC, ask the server to "re-read and process its configuration
+# file."  Your server may or may not take additional arguments.  Generally
+# requires IRCop status.
+sub rehash {
+    my $self = shift;
+    $self->sl("REHASH" . CORE::join(" ", @_));
+}
+
+
+# As per the RFC, "force a server restart itself."  (Love that RFC.)  
+# Takes no arguments.  If it succeeds, you will likely be disconnected,
+# but I assume you already knew that.  This sub is too simple...
+sub restart {
+    my $self = shift;
+    $self->sl("RESTART");
 }
 
 # Schedules an event to be executed after some length of time.
@@ -1601,6 +1648,19 @@ sub stats {
     $self->sl("STATS $_[0]" . ($_[1] ? " $_[1]" : ""));
 }
 
+# If anyone still has SUMMON enabled, this will implement it for you.
+# If not, well...heh.  Sorry.  First arg mandatory: user to summon.  
+# Second arg optional: a server name.
+sub summon {
+    my $self = shift;
+
+    unless (@_) {
+	croak "Not enough arguments passed to summon()";
+    }
+
+    $self->sl("SUMMON $_[0]" . ($_[1] ? " $_[1]" : ""));
+}
+
 
 # -- #perl was here! --
 # <Sauvin>  Bigotry will never die.
@@ -1718,7 +1778,7 @@ sub who {
     my $self = shift;
 
     # Obfuscation!
-    $self->sl( "WHO" . ($_[0] ? " $_[0]" : "") . ($_[1] ? " $_[1]" : ""));
+    $self->sl("WHO" . (@_ ? " @_" : ""));
 }
 
 # -- #perl was here! --
@@ -1831,7 +1891,7 @@ details about this module.
 =head1 AUTHORS
 
 Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt> and
-Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
+Dennis Taylor E<lt>dennis@funkplanet.comE<gt>.
 
 Ideas and large amounts of code donated by Nat "King" Torkington E<lt>gnat@frii.comE<gt>.
 

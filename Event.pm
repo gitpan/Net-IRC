@@ -832,7 +832,7 @@ detailed description, or the Net::IRC::Event.pm source code for a quick list.
 =head1 AUTHORS
 
 Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt> and
-Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
+Dennis Taylor E<lt>dennis@funkplanet.comE<gt>.
 
 Ideas and large amounts of code donated by Nat "King" Torkington E<lt>gnat@frii.comE<gt>.
 

@@ -120,7 +120,7 @@ sub _getline {
 	# Error, lets scrap this connection
 	
         warn "recv() returned undef, socket error in _getline()\n"
-            if i$self->{_debug};
+            if $self->{_debug};
 	
         $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
@@ -277,7 +277,7 @@ sub parse {
     # The file is done.
     # If we close the socket, the select loop gets screwy because
     # it won't remove its reference to the socket.
-    if ( $self->{_size} and $self->{_size} >= $self->{_bin} ) {
+    if ( $self->{_size} and $self->{_size} <= $self->{_bin} ) {
         close $self->{_fh};
         $self->{_parent}->parent->removeconn($self);
         $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
@@ -739,7 +739,7 @@ details about this module.
 =head1 AUTHORS
 
 Conceived and initially developed by Greg Bacon E<lt>gbacon@adtran.comE<gt> and
-Dennis Taylor E<lt>corbeau@execpc.comE<gt>.
+Dennis Taylor E<lt>dennis@funkplanet.comE<gt>.
 
 Ideas and large amounts of code donated by Nat "King" Torkington E<lt>gnat@frii.comE<gt>.
 
