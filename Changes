@@ -168,9 +168,43 @@ Revision history for Perl extension Net::IRC.
 	- Fixed a big fat bug with _add_generic_handler. Setting up multiple
 	  handlers with arrayrefs works again now.
 	- Connection.pm and DCC.pm's input routines now actually throw a
-	  "disconnect" event for connection-losing errors.
+	  "disconnect" or "dcc_close" event for connection-losing errors.
 	- Alex Ibrado's bug report resulted in the fixing of some stupid bugs
 	  in the kick, topic, squit, and wallops methods. Doh...
 	- Added Tkil's monster patch to fix Connection->parse errors, among
 	  other things. You go, Tkil!
+
+0.5    Wed Apr  1 23:28:13 CST 1998 
+	- Added a few Undernet compatibility changes suggested by Che_Fox.
+	- Fixed a really dumb bug in Connection->default. Umm, doh.
+	- DCC.pm got a number of miscellaneous changes, including making
+	  $dcc->{_time} actually useful for SEND and CHAT, and adding events
+	  for dcc_open and dcc_close all over. Thanks, mjd!
+	- Fixed some evil bugs in DCC.pm... CHAT could call autoflush() on
+	  the result of a failed IO::Socket->new(), and DCC GET had an odd
+	  hanging problem on the last block of a file. *Many* thanks to the
+	  indefatigable \mjd for spotting and patching the latter.
+	- Added sanity checks to DCC.pm to prevent abuse by malicious remote
+	  clients. Net::IRC -- making the world safe for bots, one Boolahman
+	  at a time!
+	- Stupid low-level CTCP dequoting bug fixed on a report from \mjd.
+	- Even stupider Connection->server bug tracked down and stomped.
+
+0.51   Tue May 19 01:03:57 CDT 1998 
+	- Aryeh patched a few minor bugs in the formatting functions.
+	- Problem with the select timeout in do_one_loop() squashed.
+	- Minor changes to dain-bramaged parts of DCC::CHAT::parse().
+	- Connection::parse() is now much friendlier to "localhost" servers.
+	- Added another error check to IRC::schedule() (thanks, Cuberoot!)
+	- Connection::sl() won't send \r\n over DCC CHAT anymore.
+	- All "return undef"s changed to "return;" as per gbacon's suggestion.
+	- irctest now uses strict -- it was mostly strict-safe before, but I
+	  had forgotten the actual 'use'... doh. Thanks, arkuat!
+	- tile is the DCC God. A two-line patch of his fixed an ugly DCC
+	  CHAT blocking bug I'd been hacking on for a few days. You GO, tile!
+	- The Net::IRC source now uses Carp for all error reporting.
+	- The setout() and seterr() methods are dead as a result of the
+	  previous change. You'll have to do your own tee'ing... sorry.
+
+
 

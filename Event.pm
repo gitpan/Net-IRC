@@ -42,6 +42,7 @@ sub args {
 	$self->{'args'} = [ ];
 	while (@q) {
 	    $i = shift @q;
+	    next unless defined $i;
 	    
 	    if ($i =~ /^:/) {                        # Concatenate :-args.
 		$i = join ' ', (substr($i, 1), @q);
@@ -163,6 +164,14 @@ sub nick {
     return $self->{'nick'};
 }
 
+# -- #perl was here! --
+#  <ROM_Man>  can anyone point me to a resource on how to deal with shadow
+#             passwords in perl?
+#  <ROM_Man>  anyone alive?
+#     <\mjd>  <rattle> Who dares to disturb my eternal rest?
+#     <\mjd>  <clank>    <clank>                     <clank>
+
+
 # Sets or returns the recipient list for this event
 # Takes any number of args:  this event's list of recipients.
 sub to {
@@ -210,6 +219,12 @@ sub type {
     $self->{'type'} = $_[0] if @_;
     return $self->{'type'};
 }
+
+# -- #perl was here! --
+#    <\mjd>  This is an impressive piece of software.
+# <fimmtiu>  Really? I always thought of it as a huge, monstrously multiplying
+#            collection of hacks in a metaphorical petri dish. :-)
+#    <\mjd>  You say that as though it were a bad thing...
 
 # Sets or returns the username of this event's initiator
 # Takes 1 optional arg:  the new value for this event's "user" field.

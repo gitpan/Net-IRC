@@ -16,13 +16,14 @@
 
 package Net::IRC;
 
-require 5.004;             # needs IO::* and $coderef->(@args) syntax 
+use 5.004;             # needs IO::* and $coderef->(@args) syntax 
 use Net::IRC::Connection;
 use IO::Select;
+use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.5b";
+$VERSION = "0.51";
 
 
 #####################################################################
@@ -51,6 +52,14 @@ sub addfh {
     my ($letter);
 
     die "Not enough arguments to IRC->addfh()" unless defined $code;
+
+    # -- #perl was here! --
+    # *** sonic_1 (rick@highlife.net) has joined channel #perl
+    # <sonic_1> can someone tell me whats wrong with this script?
+    # <sonic_1> #!/usr/bin/perl
+    # <sonic_1> for $x in 'ls --width=1';
+    # <sonic_1> do 'mv $x ~$x/Mailbox;chown $x.mail ~$x/Mailbox';
+    # <sonic_1> fi
     
     foreach $letter (split(//, lc $flag)) {
 	if ($letter eq 'r') {
@@ -96,7 +105,8 @@ sub do_one_loop {
     # Block until input arrives, then hand the filehandle over to the
     # user-supplied coderef. Look! It's a freezer full of government cheese!
     
-    $timeout = $nexttimer ? $nexttimer - $time : $self->{_timeout};
+    $timeout = $nexttimer - $time < $self->{_timeout}
+               ? $nexttimer - $time : $self->{_timeout};
     foreach $ev (IO::Select->select($self->{_read},
 				    $self->{_write},
 				    $self->{_error},
@@ -114,6 +124,12 @@ sub do_one_loop {
 sub new {
     my $proto = shift;
 
+    # -- #perl was here! --
+    # *** Notice -- Received KILL message for `akira`. From billn  Path:
+    # *.concentric.net[irc@ircd.concentric.net]!*.umn.edu[irc2.tc.umn.edu]!
+    # irc-phx.primenet.com[irc@irc06.primenet.com]!usr05.primenet.com!billn
+    # (User requested. Wants to be a spambot.)
+    
     my $self = {
 	        '_conn'     => [],
 		'_connhash' => {},
@@ -141,7 +157,7 @@ sub newconn {
     my $self = shift;
     my $conn = Net::IRC::Connection->new($self, @_);
     
-    return undef if $conn->error;
+    return if $conn->error;
 
     $self->addconn($conn);
     return $conn;
@@ -407,7 +423,7 @@ occurs. Here's a sample handler sub:
     sub on_connect {
         my $self = shift;
 
-        $self->print("Joining #IRC.pm...");
+        print "Joining #IRC.pm...";
         $self->join("#IRC.pm");
         $self->privmsg("#IRC.pm", "Hi there.");
     }
