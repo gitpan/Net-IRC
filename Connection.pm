@@ -229,7 +229,7 @@ sub connect {
 	return undef;
     }
 
-    $self->{'connected'} = 1;
+    $self->{_connected} = 1;
 }
 
 # Returns a boolean value based on the state of the object's socket.
@@ -1165,7 +1165,7 @@ sub quit {
     # Why bother checking for sl() errors now, after all?  :)
     $self->sl("QUIT :" . (scalar(@_) ? $_[0] : "Leaving"));
     $self->socket->close;
-    $self->{'connected'} = undef;
+    $self->{_connected} = undef;
     return 1;
 }
 
@@ -1455,8 +1455,8 @@ sub whowas {
 
 
 # This sub executes the default action for an event with no user-defined
-# handlers. It's all in one sub so that we don't have to make 100+ separate
-# anonymous subs stuffed in a hash. (ouch)
+# handlers. It's all in one sub so that we don't have to make a ton of
+# separate anonymous subs stuffed in a hash. (ouch)
 
 sub _default {
     my ($self, $event) = @_;
@@ -1470,8 +1470,6 @@ sub _default {
     
     # Reply to PING from server as quickly as possible.
     if ($event->type eq "ping") {
-
-	# the ":" is in $line, if present.
 	$self->sl("PONG " . (join ' ', $event->args));
 	
     } elsif ($event->type eq "disconnect") {

@@ -37,4 +37,5 @@ WriteMakefile(
 		  'DCC.pm'        => '${INST_LIBDIR}/IRC/DCC.pm',
 	      },
 	      'VERSION_FROM' => 'IRC.pm', # finds $VERSION
+              'dist' => { 'COMPRESS' => 'gzip --best' },
 );

@@ -131,3 +131,9 @@ Revision history for Perl extension Net::IRC.
 	  files weren't properly removed before tarring by a particularly
 	  mischevious script.
 
+0.44   Wed Dec 31 18:13:32 CST 1997
+	- Fixed some newly created bugs with Connection->connected. Argh!
+	- Scrapped and redid distribution-rolling scripts. You know,
+	  ExtUtils::MakeMaker is really nice.
+
+

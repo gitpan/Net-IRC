@@ -6,5 +6,6 @@ IRC.pm
 irctest
 LICENSE
 MANIFEST
+MANIFEST.SKIP
 Makefile.PL
 README

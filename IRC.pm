@@ -43,7 +43,7 @@ $DEBUG_TOOMUCH  = 0xffff;
 # actually included the debugging code in there yet... that's for
 # the next time I get unlazy and unbusy at the same time.  :-)
 
-$VERSION = "0.43";
+$VERSION = "0.44";
 
 
 #####################################################################
