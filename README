@@ -1,4 +1,4 @@
-Net::IRC 0.45  README        Dennis Taylor        Sat Jan  3 15:48:57 CST 1998
+Net::IRC 0.5b   README       Dennis Taylor        Sun Mar 15 14:29:09 CST 1998
 ==============================================================================
 
 Table of Contents
@@ -39,20 +39,19 @@ it!
 2. Availability
 ------------------------
 
-    The following two identical sites provide source code and information
-about the Net::IRC project:
+    Source code and information about the Net::IRC project can be found here:
 
-    http://www.execpc.com/~corbeau/irc/
-    http://betterbox.net/fimmtiu/irc/
+        http://netirc.betterbox.net/
     
-    The working directory for the next release, which is probably of little
-interest to any non-abnormally-curious person reading this, can be found at:
+    (Don't even ask how that hostname came about.) The working directory for
+the next release, which is probably of little interest to any non-abnormally-
+curious person reading this, can be found at:
 
-    http://www.execpc.com/~corbeau/irc/dev/
+        http://www.execpc.com/~corbeau/irc/dev/
 
     And, of course, there's CPAN for the (mostly) latest released source:
 
-    http://www.perl.com/CPAN/modules/by-module/Net/
+        http://www.perl.com/CPAN/modules/by-module/Net/
 
 
 
@@ -143,11 +142,11 @@ Without further ado... *ahem* :
 Net::IRC is taken care of by a bunch of people on the EFnet IRC channel #perl
 who have way too much time on their hands. If you're interested in helping
 out, there's a mailing list for Net::IRC development; details can be found at
-http://www.execpc.com/~corbeau/irc/list.html .
+http://netirc.betterbox.net/list.html.
 
     Submit bug reports and problems to Dennis Taylor <corbeau@execpc.com>. If
 you're looking for technical support for a Net::IRC script, your best bet is
-to ask on #perl or the comp.lang.perl.misc newsgroup. Thanks!
+to ask on EFNet #perl or the comp.lang.perl.misc newsgroup. Thanks!
 
 
 

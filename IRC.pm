@@ -16,86 +16,53 @@
 
 package Net::IRC;
 
-use 5.004;             # needs IO::* and $coderef->(@args) syntax 
+require 5.004;             # needs IO::* and $coderef->(@args) syntax 
 use Net::IRC::Connection;
 use IO::Select;
 use strict;
-use vars qw($VERSION
-	    $DEBUG_PARSER
-	    $DEBUG_SELECT
-	    $DEBUG_ALLIN
-	    $DEBUG_SENDLINE
-	    $DEBUG_EVENTS
-	    $DEBUG_HANDLERS
-	    $DEBUG_ALLOUT
-	    $DEBUG_TOOMUCH);
+use vars qw($VERSION);
 
-$DEBUG_PARSER   = 0x0100;
-$DEBUG_SELECT   = 0x0200;
-$DEBUG_ALLIN    = 0xff00;
-$DEBUG_SENDLINE = 0x0001;
-$DEBUG_EVENTS   = 0x0002;
-$DEBUG_HANDLERS = 0x0004;
-$DEBUG_ALLOUT   = 0x00ff;
-$DEBUG_TOOMUCH  = 0xffff;
-
-# Anyone have any more categories to recommend? Note that I haven't
-# actually included the debugging code in there yet... that's for
-# the next time I get unlazy and unbusy at the same time.  :-)
-
-$VERSION = "0.45";
+$VERSION = "0.5b";
 
 
 #####################################################################
 #        Methods start here, arranged in alphabetical order.        #
 #####################################################################
 
-# Adds a Connection to the connections list and sets changed.
+
+# Front end to addfh(), below. Sets it to read by default.
+# Takes at least 1 arg:  an object to add to the select loop.
+#           (optional)   a flag string to pass to addfh() (see below)
 sub addconn {
-    my ($self,$conn) = @_;
-
-    push(@{$self->{_conn}}, $conn) if defined $conn;
-    $self->changed;
-
-    return $conn;
+    my ($self, $conn) = @_;
+    
+    $self->addfh( $conn->socket, $conn->can('parse'), ($_[2] || 'r'), $conn);
 }
 
-# Simple enough for ya? This lets the select loop know that it needs to
-# rebuild the list of active filehandles. No args.
-sub changed {
-    $_[0]->{_changed} = 1;
-}
+# Adds a filehandle to the select loop. Tasty and flavorful.
+# Takes 3 args:  a filehandle or socket to add
+#                a coderef (can be undef) to pass the ready filehandle to for
+#                  user-specified reading/writing/error handling.
+#                a string with r/w/e flags, similar to C's fopen() syntax,
+#                  except that you can combine flags (i.e., "rw").
+#    (optional)  an object that the coderef is a method of
+sub addfh {
+    my ($self, $fh, $code, $flag, $obj) = @_;
+    my ($letter);
 
-# Prints an error message when a socket gets closed on us.
-# Takes at least 1 arg:  the object whose socket is in question
-#            (optional)  an error message to print.
-sub closed {
-    my ($self, $obj, $err) = @_;
-    my (@peer);
+    die "Not enough arguments to IRC->addfh()" unless defined $code;
     
-    $err ||= $!;   # Err can be $! if it's not yet set.
-    
-    if (@peer = $obj->peer) {
-
-	# This is a bit of an ugly hack. Suggestions welcome.
-	until ($obj->can("printerr")) {  $obj = $obj->{_parent};  }
-	
-	$obj->printerr($peer[1] . " to " . $peer[0] . " closed" .
-		       ($err ? ": $err." : "."));
-    } else {
-
-	$obj->{_parent}->printerr("Connection closed" . ($err ? ": $err." : "."))
-	    if $obj->{_parent};
+    foreach $letter (split(//, lc $flag)) {
+	if ($letter eq 'r') {
+	    $self->{_read}->add( $fh );
+	} elsif ($letter eq 'w') {
+	    $self->{_write}->add( $fh );
+	} elsif ($letter eq 'e') {
+	    $self->{_error}->add( $fh );
+	}
     }
-}
 
-# Returns or sets the debugger level for this Net::IRC object.
-# Takes 1 optional arg:  the new debugger level.
-sub debug {
-    my $self = shift;
-
-    if (@_) { $self->{_debug} = $_[0] }
-    else    { return $self->{_debug}  }
+    $self->{_connhash}->{$fh} = [ $code, $obj ];
 }
 
 # Goes through one iteration of the main event loop. Useful for integrating
@@ -105,84 +72,40 @@ sub do_one_loop {
     my $self = shift;
     
     # -- #perl was here! --
-    #  ChipDude: Pudge:  Do not become the enemy.
-    #    ^Pudge: give in to the dark side, you knob.
+    # <ChipDude> Pudge:  Do not become the enemy.
+    #   <^Pudge> give in to the dark side, you knob.
     
-    my ($conn, $sock, $time, $nexttimer, $timeout);
-    my $select = $self->{_ioselect};
-    
-    if ($self->{_changed}) {
-	$select->remove($select->handles);
-	$self->{_connhash} = {};
-	foreach $conn ( @{$self->{_conn}} ) {
-	    $select->add( $conn->socket )
-		if $conn->socket->opened;
-	    $self->{_connhash}->{$conn->socket} = $conn;
-	    $self->{_fraghash}->{$conn->socket} = '';
-	}
-	$self->{_changed} = 0;
-    }
+    my ($ev, $sock, $time, $nexttimer, $timeout);
     
     # Check the queue for scheduled events to run.
     
-    $time = time;              # no use calling time() all the time.
+    $time = time();             # no use calling time() all the time.
     $nexttimer = 0;
-    foreach $sock ($self->queue) {     # we can reuse $sock, too. Woo!
-	if ($self->{_queue}->{$sock}->[0] <= $time) {
-	    $self->{_queue}->{$sock}->[1]->
-		(@{$self->{_queue}->{$sock}}[2..$#{$self->{_queue}->{$sock}}]);
-	    delete $self->{_queue}->{$sock};
+    foreach $ev ($self->queue) {
+	if ($self->{_queue}->{$ev}->[0] <= $time) {
+	    $self->{_queue}->{$ev}->[1]->
+		(@{$self->{_queue}->{$ev}}[2..$#{$self->{_queue}->{$ev}}]);
+	    delete $self->{_queue}->{$ev};
 	} else {
-	    $nexttimer = $self->{_queue}->{$sock}->[0] 
-		if ($self->{_queue}->{$sock}->[0] < $nexttimer
+	    $nexttimer = $self->{_queue}->{$ev}->[0] 
+		if ($self->{_queue}->{$ev}->[0] < $nexttimer
 		    or not $nexttimer);
 	}
     }
-    # Block until input arrives... I regret the use of an extraneous
-    # variable here, but it's pretty ooogly otherwise, as $conn would
-    # change contexts.
+    
+    # Block until input arrives, then hand the filehandle over to the
+    # user-supplied coderef. Look! It's a freezer full of government cheese!
     
     $timeout = $nexttimer ? $nexttimer - $time : $self->{_timeout};
-    foreach $sock ($select->can_read($timeout)) {
-	my ($line, $input);
-	
-	# -- #perl was here! --
-	#   Tkil2: hm.... any joy if you add a 'defined' to the test? like
-	#          if (defined $sock...
-	# fimmtiu: Much joy now.
-	#   archon rejoices
+    foreach $ev (IO::Select->select($self->{_read},
+				    $self->{_write},
+				    $self->{_error},
+				    $timeout)) {
+	foreach $sock (@{$ev}) {
+	    my $conn = $self->{_connhash}->{$sock};
 
-	if ($self->{_connhash}->{$sock}->{_nonblock}) {
-	    $self->{_connhash}->{$sock}->parse();
-	    next;
+	    $conn->[0]->($conn->[1] ? ($conn->[1], $sock) : $sock);
 	}
-	
-	my $frag = $self->{_fraghash}->{$sock};
-	if (defined $sock->recv($input, 10240)) {
-	    $frag .= $input;
-	    if (length($frag) > 0) {
-		# Tkil sez: "thanks to tchrist for pointing out that the -1
-		# keeps null fields at the end".  (tkil rewrote this part)
-		# We're returning \n's 'cause DCC's need 'em
-		my @lines = split /(\n)/, $frag, -1;
-		$frag = (@lines > 1 ? pop @lines : '');
-		foreach $line (@lines) {
-		    $self->{_connhash}->{$sock}->parse($line);
-		}
-	    } else {
-		# um, if we can read, i say we should read more than 0
-		# besides, recv isn't returning undef on closed
-		# sockets.  getting rid of this connection...
-		$self->closed($self->{_connhash}->{$sock});
-		$self->removeconn($self->{_connhash}->{$sock});
-	    }
-	} else {
-	    # Error, lets scrap this Connection
-	    $self->closed($self->{_connhash}->{$sock});
-	    $self->removeconn($self->{_connhash}->{$sock});
-	}
-	
-	$self->{_fraghash}->{$sock} = $frag;
     }
 }
 
@@ -194,12 +117,12 @@ sub new {
     my $self = {
 	        '_conn'     => [],
 		'_connhash' => {},
-		'_debug'    =>  0,
-		'_fraghash' => {},
-		'_ioselect' => IO::Select->new(),
+		'_error'    => IO::Select->new(),
 		'_queue'    => {},
 		'_qid'      => 'a',
+		'_read'     => IO::Select->new(),
 		'_timeout'  =>  1,
+		'_write'    => IO::Select->new(),
 	    };
 
     bless $self, $proto;
@@ -217,11 +140,11 @@ sub new {
 sub newconn {
     my $self = shift;
     my $conn = Net::IRC::Connection->new($self, @_);
+    
+    return undef if $conn->error;
 
-    push @{$self->{_conn}}, $conn;
-    $self->changed;
-    return $conn unless $conn->error;
-    return undef;
+    $self->addconn($conn);
+    return $conn;
 }
 
 # Returns a list of listrefs to event scheduled to be run.
@@ -234,29 +157,45 @@ sub queue {
 	$self->{_queue}->{$self->{_qid}++} = [ @_ ];
 
     } else {
-
 	return keys %{$self->{_queue}};
     }
 }
 
-# Removes a given Connection and sets changed.
+# -- #perl was here! --
+#   <Tkil> chaos_ -- oh... and if you're a beginner... don't worry overmuch
+#          about efficiency.
+#  <billn> if I wanted efficency, I'd put bigger tires on my truck, so I could
+#          get the whole cat in one pass.
+
+# Front-end for removefh(), below.
 # Takes 1 arg:  a Connection (or DCC or whatever) to remove.
 sub removeconn {
     my ($self, $conn) = @_;
     
-    @{$self->{_conn}} = grep { $_ != $conn } @{$self->{_conn}};
-    $self->changed;
+    $self->removefh( $conn->socket );
 }
+
+# Given a filehandle, removes it from all select lists. You get the picture.
+sub removefh {
+    my ($self, $fh) = @_;
+    
+    $self->{_read}->remove( $fh );
+    $self->{_write}->remove( $fh );
+    $self->{_error}->remove( $fh );
+    delete $self->{_connhash}->{$fh};
+}
+
+# -- #perl was here! --
+#  <^Pudge>  orwant: was there a Perl before 5.004?
+#  <orwant>  ^Pudge: Nope, perl5.004 flew out of Chip's head like
+#            Athena out of Zeus.
+#  <oznoid>  heh!
 
 # Begin the main loop. Wheee. Hope you remembered to set up your handlers
 # first... (takes no args, of course)
 sub start {
     my $self = shift;
 
-    # -- #perl was here! --
-    #  ChipDude: Pudge:  Do not become the enemy.
-    #    ^Pudge: give in to the dark side, you knob.
-    
     while (1) {
 	$self->do_one_loop();
     }
@@ -268,6 +207,12 @@ sub start {
 sub timeout {
     my $self = shift;
 
+    # -- #perl was here! --
+    # <fimmtiu>  asylum, then your disk is full. *shrug*  Wield rm -f wildly.
+    # <asylum_>  fimmtiu. yeah right dude.
+    #   <DemoN>  rm -f is too slow.  newfs.
+    # <rudefix>  hell, i just prefer to take the disk out and lick it!
+    
     if (@_) { $self->{_timeout} = $_[0] }
     return $self->{_timeout};
 }
@@ -310,8 +255,9 @@ Net::IRC
 
 The wrapper for everything else, containing methods to generate
 Connection objects (see below) and a connection manager which does an event
-loop, reads available data from all currently open connections, and passes
-it off to the appropriate parser in a separate package.
+loop on all available filehandles. Sockets or files which are readable (or
+writable, or whatever you want it to select() for) get passed to user-supplied
+handler subroutines in other packages or in user code.
 
 =item *
 
@@ -339,7 +285,7 @@ only argument passed to a handler function.
 Net::IRC::DCC
 
 The analogous object to Connection.pm for connecting, sending and
-retrieving with the DCC protocol. Invoked from
+retrieving with the DCC protocol. Instances of DCC>pm are invoked from
 C<Connection-E<gt>new_{send,get,chat}> in the same way that
 C<IRC-E<gt>newconn> invokes C<Connection-E<gt>new>. This will make more
 sense later, we promise.
@@ -444,7 +390,7 @@ clients which don't run identd.
 
 Ircname
 
-A short (maybe 50 or 60 chars) piece of text, originally intended to display
+A short (maybe 60 or so chars) piece of text, originally intended to display
 your real name, which people often use for pithy quotes and URLs. Defaults to
 the contents of your GECOS field.
 
@@ -510,10 +456,9 @@ to C<start()> to ever get executed.
 
 If you're tying Net::IRC into another event-based module, such as perl/Tk,
 there's a nifty C<do_one_loop()> method provided for your convenience. Calling
-C<$irc-E<gt>do_one_loop()> runs through the IRC.pm event loop once, reads from
-all ready filehandles, and dispatches their events, then returns control to
-your program. Currently, performance on this is a little slow, but we're
-working on it.
+C<$irc-E<gt>do_one_loop()> runs through the IRC.pm event loop once, hands
+all ready filehandles over to the appropriate handler subs, then returns
+control to your program. (Analogous to Tk's C<do_one_loop()>.)
 
 =head1 METHOD DESCRIPTIONS
 
@@ -523,7 +468,7 @@ their respective modules' documentation; just C<perldoc Net::IRC::Connection>
 (or Event or DCC or whatever) to read them. Functions take no arguments
 unless otherwise specified in their description.
 
-By the way, expect Net::IRC to use Autoloader sometime in the future, once
+By the way, expect Net::IRC to use AutoLoader sometime in the future, once
 it becomes a little more stable.
 
 =over
@@ -532,42 +477,67 @@ it becomes a little more stable.
 
 addconn()
 
-Adds the specified socket or filehandle to the list of readable connections
-and notifies C<do_one_loop()>.
+Adds the specified object's socket to the select loop in C<do_one_loop()>.
+This is mostly for the use of Connection and DCC objects (and for pre-0.5
+compatibility)... for most (read: all) purposes, you can just use C<addfh()>,
+described below.
 
-Takes 1 arg:
+Takes at least 1 arg:
 
 =over
 
 =item 0.
 
-a socket or filehandle to add to the select loop
+An object whose socket needs to be added to the select loop
+
+=item 1.
+
+B<Optional:> A string consisting of one or more of the letters r, w, and e.
+Passed directly to C<addfh()>... see the description below for more info.
 
 =back
 
 =item *
 
-changed()
+addfh()
 
-Sets a flag which tells C<do_one_loop()> that the current list of readable
-connections needs to be rebuilt. It's not likely that many users will need
-this... just use C<addconn()> and C<removeconn()> instead.
+This sub takes a user's socket or filehandle and a sub to handle it with and
+merges it into C<do_one_loop()>'s list of select()able filehandles. This makes
+integration with other event-based systems (Tk, for instance) a good deal
+easier than in previous releases.
 
-=item *
+Takes at least 2 args:
 
-debug()
+=over
 
-This doesn't yet even pretend to be functional. It may be in the future; wait
-and see.
+=item 0.
+
+A socket or filehandle to monitor
+
+=item 1.
+
+A reference to a subroutine. When C<select()> determines that the filehandle
+is ready, it passes the filehandle to this (presumably user-supplied) sub,
+where you can read from it, write to it, etc. as your script sees fit.
+
+=item 2.
+
+B<Optional:> A string containing any combination of the letters r, w or e
+(standing for read, write, and error, respectively) which determines what
+conditions you're expecting on that filehandle. For example, this line
+select()s $fh (a filehandle, of course) for both reading and writing:
+
+    $irc->addfh( $fh, \&callback, "rw" );
+
+=back
 
 =item *
 
 do_one_loop()
 
-C<select()>s on all open sockets and passes any information it finds to the
-appropriate C<parse()> method in a separate package for handling. Also
-responsible for executing scheduled events from
-C<Net::IRC::Connection-E<gt>schedule()> on time.
+C<select()>s on all open filehandles and passes any ready ones to the
+appropriate handler subroutines. Also responsible for executing scheduled
+events from C<Net::IRC::Connection-E<gt>schedule()> on time.
 
 =item *
 
@@ -587,8 +557,10 @@ found in the B<Synopsis> or B<Getting Started> sections.
 
 removeconn()
 
-Removes the specified socket or filehandle from the list of readable
-filehandles and notifies C<do_one_loop()> of the change.
+Removes the specified object's socket from C<do_one_loop()>'s list of
+select()able filehandles. This is mostly for the use of Connection and DCC
+objects (and for pre-0.5 compatibility)... for most (read: all) purposes,
+you can just use C<removefh()>, described below.
 
 Takes 1 arg:
 
@@ -596,7 +568,24 @@ Takes 1 arg:
 
 =item 0.
 
-a socket or filehandle to remove from the select loop
+An object whose socket or filehandle needs to be removed from the select loop
+
+=back
+
+=item *
+
+removefh()
+
+This method removes a given filehandle from C<do_one_loop()>'s list of
+selectable filehandles.
+
+Takes 1 arg:
+
+=over
+
+=item 0.
+
+A socket or filehandle to remove
 
 =back
 
@@ -607,6 +596,22 @@ start()
 Starts an infinite event loop which repeatedly calls C<do_one_loop()> to
 read new events from all open connections and pass them off to any
 applicable handlers.
+
+=item *
+
+timeout()
+
+Sets or returns the current C<select()> timeout for the main event loop, in
+seconds (fractional amounts allowed). See the documentation for the
+C<select()> function for more info.
+
+Takes 1 optional arg:
+
+=over
+
+=item 0.
+
+B<Optional:> A new value for the C<select()> timeout for this IRC object.
 
 =back
 
@@ -634,20 +639,8 @@ http://www.execpc.com/~corbeau/irc/list.html .
 
 =head1 URL
 
-The following identical pages contain up-to-date source and information
-about the Net::IRC project:
-
-=over
-
-=item *
-
-http://www.execpc.com/~corbeau/irc/
-
-=item *
-
-http://betterbox.net/fimmtiu/irc/
-
-=back
+Up-to-date source and information about the Net::IRC project can be found at
+http://netirc.betterbox.net/ .
 
 =head1 SEE ALSO
 

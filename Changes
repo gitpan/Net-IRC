@@ -38,7 +38,6 @@ Revision history for Perl extension Net::IRC.
 	- Fixed a couple small errors (typos, mostly).
 
 0.29   Sat Oct 25 16:48:19 CDT 1997
-	- Changed "require 5.004;" to "use 5.004;" in IRC.pm.
 	- Added a placeholder DCC.pm to the source tree so I won't have to
 	  go back and change stuff once it's written.
 	- Changed the order of default nick/ircname variables.
@@ -143,5 +142,35 @@ Revision history for Perl extension Net::IRC.
 	- IRC->remove_conn() changed to removeconn() for consistency with
 	  IRC->addconn() and IRC->newconn().
 
-
+0.5b   Sun Mar 15 14:29:09 CST 1998
+	- Sizable chunks of IRC, DCC, and Connection.pm rewritten according to
+	  wise suggestions from the venerable elders \merlyn and Roderick.
+	- addfh() and removefh() methods added to IRC.pm; changed() and
+	  closed(), having been rendered utterly useless, were removed.
+	- Reading data from ready non-{DCC,Connection} sockets is now the
+	  responsibility of the user. This provides more flexibility (if you
+	  only want to read N bytes, if it's a buffered FH and not a socket,
+	  etc.), but will break any existing such code. Better now than later.
+	- Various documentation updates for IRC.pm; more progress made on the
+	  as-yet-unreleased Connection.pm docs. Any volunteers to help out
+	  with the PODs?
+	- The select loop now monitors writable and errored filehandles as
+	  well as readable ones. See the updated documentation for IRC.pm.
+	- Chat request feature added to irctest... if you say anything
+	  matching /^Chat/i on a channel with your bot, it will try to
+	  initiate a DCC CHAT with you. Mostly for debugging purposes, but
+	  it might actually be useful to someone out there anyhow...
+	- A bug report from Che_Fox led to the squashing of a bug in privmsg
+	  that kept it from properly trimming long lines before sending.
+	- Johnathan Vasilis pointed out a quickly-fixed bug in Connection->
+	  userhost(). Thanks!
+	- Events now trim preceding colons properly. Happy now, longhair? :-)
+	- Fixed a big fat bug with _add_generic_handler. Setting up multiple
+	  handlers with arrayrefs works again now.
+	- Connection.pm and DCC.pm's input routines now actually throw a
+	  "disconnect" event for connection-losing errors.
+	- Alex Ibrado's bug report resulted in the fixing of some stupid bugs
+	  in the kick, topic, squit, and wallops methods. Doh...
+	- Added Tkil's monster patch to fix Connection->parse errors, among
+	  other things. You go, Tkil!
 

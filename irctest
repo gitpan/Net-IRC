@@ -14,7 +14,7 @@ $irc = new Net::IRC;
 
 print "Creating connection to IRC server...\n";
 
-$conn = $irc->newconn(Server   => 'irc.cs.cmu.edu',
+$conn = $irc->newconn(Server   => 'irc.c-com.net',
                       Port     => '6668',
                       Nick     => 'Boolahman',
                       Ircname  => 'This bot brought to you by Net::IRC.',
@@ -54,22 +54,12 @@ sub on_connect {
 	my $self = shift;
 	
 	$self->print("Joining #IRC.pm...");
-	$self->join("#IRC.pm");
+	$self->join("#perl");
 	$self->privmsg("#IRC.pm", &pickrandom(@zippy));
 }
 
 # Handles some messages you get when you connect
-sub on_init1 {
-    my ($self, $event) = @_;
-    my (@args) = ($event->args);
-    shift (@args);
-    my $args = substr join(' ', @args), 1;
-    
-    $self->print("*** $args");
-}
-
-# Handles more server connection messages
-sub on_init2 {
+sub on_init {
     my ($self, $event) = @_;
     my (@args) = ($event->args);
     shift (@args);
@@ -82,8 +72,7 @@ sub on_part {
     my ($self, $event) = @_;
     my ($channel) = ($event->to)[0];
 
-    printf "*** %s has left channel %s\n",
-    	$event->nick, $channel;
+    printf "*** %s has left channel %s\n", $event->nick, $channel;
 }
 
 # What to do when someone joins a channel the bot is on.
@@ -126,6 +115,9 @@ sub on_public {
 	exit 0;
     }
 
+    if ($arg =~ /^Chat/i) {         # Request a DCC Chat initiation
+	$self->new_chat(1, $event->nick, $event->host);
+    }
 
     # You can invoke this next part with "Send me Filename" or
     # "Send Filename to me". It doesn't much like ending punctuation, though.
@@ -157,9 +149,9 @@ sub on_chat {
 sub on_names {
     my ($self, $event) = @_;
     my (@list, $channel) = ($event->args);
+
     ($channel, @list) = splice @list, 2;
 
-    $list[0] = substr($list[0], 1);
     print "Users on $channel: @list\n";
 }
 
@@ -203,11 +195,19 @@ sub on_nick_taken {
     $self->nick(substr($self->nick, -1) . substr($self->nick, 0, 8));
 }
 
-sub pickrandom {   # Choose a random quote from the @zippy array.
-    my $index;
+# Displasy formatted CTCP ACTIONs.
+sub on_action {
+    my ($self, $event) = @_;
+    my ($nick, @args) = ($event->nick, $event->args);
+    
+    # :FIXME: this should not be necessary:
+    shift @args;
+    
+    print "* $nick @args\n";
+}
 
-    $index = rand @_;
-    return $_[$index];
+sub pickrandom {   # Choose a random quote from the @zippy array.
+    return $_[ rand scalar @_ ];
 }
 
 
@@ -218,13 +218,12 @@ $conn->add_handler('crping', \&on_ping_reply);
 $conn->add_handler('msg',    \&on_msg);
 $conn->add_handler('chat',   \&on_chat);
 $conn->add_handler('public', \&on_public);
+$conn->add_handler('caction', \&on_action);
 $conn->add_handler('join',   \&on_join);
 $conn->add_handler('part',   \&on_part);
 $conn->add_handler('cdcc',   \&on_dcc);
 
-$conn->add_global_handler(376, \&on_connect);
-$conn->add_global_handler([ 251,252,255 ], \&on_init1);
-$conn->add_global_handler([ 253,254,302 ], \&on_init2);
+$conn->add_global_handler([ 251,252,253,254,302,255 ], \&on_init);
 $conn->add_global_handler(376, \&on_connect);
 $conn->add_global_handler(433, \&on_nick_taken);
 $conn->add_global_handler(353, \&on_names);

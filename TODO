@@ -1,0 +1,6 @@
+Fix CTCP PING (again)
+Fix $self->print and setout,err so that they actually work
+Longhair reports that topic events have blank "to" fields, so he can't tell
+what channel is being affected.
+
+

@@ -19,13 +19,39 @@ package Net::IRC::Event;
 use strict;
 my %_names;
 
+# -- #perl was here! --
+# <fimmtiu> OK, another mini-log has been added to the mjd quote file
+#           in Event.pm. :-)
+# <amagosa> Heh heh
+#    <\mjd> There's an entire MJD quote file?
+#    <\mjd> Is it appropriate to ask you to put in the URL of my Perl
+#           Paraphernalia page?
+#    <\mjd> People who are amused might want to come visit.
+# <fimmtiu> Sure, why not... what's the url?
+#    <\mjd> http://www.plover.com/~mjd/perl/
+
 
 # Sets or returns an argument list for this event.
 # Takes any number of args:  the arguments for the event.
 sub args {
     my $self = shift;
-    
-    $self->{'args'} = [ @_ ] if @_;
+
+    if (@_) {
+	my (@q, $i) = @_;       # This line is solemnly dedicated to \mjd.
+
+	$self->{'args'} = [ ];
+	while (@q) {
+	    $i = shift @q;
+	    
+	    if ($i =~ /^:/) {                        # Concatenate :-args.
+		$i = join ' ', (substr($i, 1), @q);
+		push @{$self->{'args'}}, $i;
+		last;
+	    }
+	    push @{$self->{'args'}}, $i;
+	}
+    }
+
     return @{$self->{'args'}};
 }
 
@@ -37,6 +63,14 @@ sub format {
     $self->{'format'} = $_[0] if @_;
     return $self->{'format'};
 }
+
+# -- #perl was here! --
+# <Mutiny> I'm having this teeny problem and I want to know if somebody
+#          can help me with it..
+#   <\mjd> mutiny: Sever the main neck tendons before cutting through the
+#          spinal cord.  That will allow you more opportunity to separate the
+#          vertebrae prior to removing the head.
+
 
 # Sets or returns the originator of this event
 # Takes 1 optional arg:  the new value for this event's "from" field.
@@ -61,6 +95,15 @@ sub from {
     return $self->{'from'};
 }
 
+# -- #perl was here! --
+#    <\mjd>  So, I just heard that some people use their dolls to act out
+#            their childhood traumas.
+#   <jjohn>  \mjd, I've heard of that.
+# <Abigail>  I do that too. Every night before I go to sleep, I whip my dolls.
+#    <\mjd>  Yesterday Lorrie and I had one of our plush octopuses make us
+#            promise that we would never take it to Syms. 
+
+
 # Sets or returns the hostname of this event's initiator
 # Takes 1 optional arg:  the new value for this event's "host" field.
 sub host {
@@ -81,10 +124,9 @@ sub new {
 
     # -- #perl was here! --
     #   \mjd: Under the spreading foreach loop, the lexical variable stands.
-    #   \mjd: The my is a mighty keyword, with abcessed anal glands. (*)
+    #   \mjd: The my is a mighty keyword, with abcessed anal glands.
     #   \mjd: Apologies to Mr. Longfellow.
-    #
-    #    * it's a very long story -- ask kjj sometime.
+
 
     my $self = { 'type'   =>  $_[0],
 		 'from'   =>  $_[1],
@@ -95,8 +137,7 @@ sub new {
     
     bless $self, $class;
     
-    # OO bigots can bite me. I just saved 5 unnecessary sub calls in an
-    # often-called routine, and that's more important than dogma.
+    # Take your encapsulation and shove it!
     if ($self->{'type'} !~ /\D/) {
 	$self->{'type'} = $self->trans($self->{'type'});
     } else {
@@ -106,8 +147,9 @@ sub new {
     #  ChipDude: "Beware the method call, my son!  The subs that grab, the
     #             args that shift!"
     #      \mjd: That's pretty good.
-    
-    $self->from($self->{'from'});   # sets nick, user, and host
+
+    $self->from($self->{'from'});     # sets nick, user, and host
+    $self->args(@{$self->{'args'}});  # strips colons from args
     
     return $self;
 }
@@ -130,8 +172,29 @@ sub to {
     return @{$self->{'to'}};
 }
 
+# -- #perl was here! --
+#    <\mjd> Last night I dreamt that I had a screaming fight on the telephone
+#           with Sun Microsystems tech sales.
+# <fimmtiu> Seriously?
+#    <\mjd> Seriously.
+#    <crab> \mjd: what were you fighting about?
+#    <\mjd> All sorts of stuff.
+#    <\mjd> They wouldn't deliver what I wanted, they didn't believe I was
+#           affiliated with the people I said I was, they didn't understand
+#           some irregularity in the shipping address,
+#    <\mjd> they wouldn't honor their guarantees...
+#    <\mjd> Finally when I was screaming mad and they were going to have to
+#           give in, they just transferred me to some cheerful marketing droid
+#           who was going to explain the enahancements they'd made to HTML.
+#    <\mjd> So I remember screaming YOU IDIOTS, YOU CAN'T JUST DEFINE
+#           <!--foo--> TO MEAN WHATEVER YOU WANT BECAUSE EVERY BROWSER IN THE
+#           WORLD ALREADY TREATS IT LIKE A COMMENT!
+#           fimmtiu snickers.
+#    <\mjd> That's about when I woke up.
+
+
 # Simple sub for translating server numerics to their appropriate names.
-# Take one arg:  the number to be translated.
+# Takes one arg:  the number to be translated.
 sub trans {
     shift if (ref($_[0]) || $_[0]) =~ /^Net::IRC/;
     my $ev = shift;
@@ -201,6 +264,7 @@ sub userhost {
 	   242 => "statsuptime",
 	   243 => "statsoline",
 	   244 => "statshline",
+	   250 => "luserconns",   # 1998-03-15 -- tkil
 	   251 => "luserclient",
 	   252 => "luserop",
 	   253 => "luserunknown",
@@ -330,7 +394,7 @@ Net::IRC::Event - A class for passing event data between subroutines
 
 =head1 SYNOPSIS
 
-Hard hat area: This section under construction. Watch for falling referents.
+None yet. These docs are under construction.
 
 =head1 DESCRIPTION
 

@@ -17,8 +17,6 @@ package Net::IRC::DCC;
 
 use strict;
 
-$Net::IRC::DCC::nextport = 5555;
-
 
 # --- #perl was here! ---
 #
@@ -51,6 +49,43 @@ sub socket {
 
 sub time {
     return time - shift->{_time};
+}
+
+sub _getline {
+    my ($self, $sock) = @_;
+    my ($input, $line);
+    my $frag = $self->{_frag};
+
+    if (defined $sock->recv($input, 10240)) {
+	$frag .= $input;
+	if (length($frag) > 0) {
+	    # Tkil sez: "thanks to tchrist for pointing out that the -1
+	    # keeps null fields at the end".  (tkil rewrote this part)
+	    # We're returning \n's 'cause DCC's need 'em
+	    my @lines = split /(\n)/, $frag, -1;
+	    $self->{_frag} = (@lines > 1 ? pop @lines : '');
+	    return (@lines);
+	}
+	else {
+	    # um, if we can read, i say we should read more than 0
+	    # besides, recv isn't returning undef on closed
+	    # sockets.  getting rid of this connection...
+	    $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+							   $self->{_nick},
+							   $self->{_socket},
+							   $self->{_type}));
+	    $self->{_parent}->parent->removefh($sock);
+	    return undef;
+	}
+    } else {
+	# Error, lets scrap this connection
+	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+						       $self->{_nick},
+						       $self->{_socket},
+						       $self->{_type}));
+	$self->{_parent}->parent->removefh($sock);
+	return undef;
+    }
 }
 
 sub DESTROY {
@@ -102,7 +137,7 @@ sub new {
 
     binmode $fh;
     $fh->autoflush(1);
-   
+
     $sock = new IO::Socket::INET( Proto    => "tcp",
 				  PeerAddr => "$address:$port" );
 
@@ -127,12 +162,13 @@ sub new {
         _connected  =>  1,
         _fh         =>  $fh,    # FileHandle we will be writing to.
         _filename   =>  $filename,
+	_frag       =>  '',
 	_nick       =>  $nick,  # Nick of person on other end
         _parent     =>  $container,
         _size       =>  $size,  # Expected size of file
         _socket     =>  $sock,  # Socket we're reading from
         _time       =>  time, 
-	_type       =>  'get',
+	_type       =>  'GET',
         };
 
     bless $self, $class;
@@ -149,36 +185,37 @@ sub new {
 #   \petey: all three of them?
 
 sub parse {
-    my ($self, $line) = @_;
+    my ($self) = shift;
 
-    unless( $self->{_fh}->write($line, length($line)) ) {
-        $self->{_parent}->printerr("Error writing to " . 
-             $self->{_filename} . ": $!");
-        $self->{_fh}->close;
-        $self->{_parent}->parent->removeconn($self);
-        return;
+    foreach my $line ($self->_getline($_[0])) {
+    
+	unless( $self->{_fh}->write($line, length($line)) ) {
+	    $self->{_parent}->printerr("Error writing to " . 
+				       $self->{_filename} . ": $!");
+	    $self->{_fh}->close;
+	    $self->{_parent}->parent->removeconn($self);
+	    return;
+	}
+	
+	$self->{_bin} += length($line);
+	
+	# confirm the packet we've just recieved
+	unless ( $self->{_socket}->send( pack("N", $self->{_bin}) ) ) {
+	    $self->{_parent}->printerr("Error writing to socket: $!");
+	    $self->{_fh}->close;
+	    $self->{_parent}->parent->removeconn($self);
+	    return;
+	}
+	
+	$self->{_bout} += 4;
+	
+	# If we close the socket, the select loop gets screwy because
+	# it won't remove its reference to the socket.  weird.
+	if ( $self->{_size} && $self->{_size} <= $self->{_bin} ) {
+	    $self->{_parent}->parent->removeconn($self);
+	    $self->{_fh}->close;
+	}
     }
-
-    $self->{_bin} += length($line);
-
-    # confirm the packet we've just recieved
-    unless ( $self->{_socket}->send( pack("N", $self->{_bin}) ) ) {
-        $self->{_parent}->printerr("Error writing to socket: $!");
-        $self->{_fh}->close;
-        $self->{_parent}->parent->removeconn($self);
-        return;
-    }
-
-    $self->{_bout} += 4;
-
-    # If we close the socket, the select loop gets screwy because
-    # it won't remove its reference to the socket.  weird.
-    if ( $self->{_size} && $self->{_size} == $self->{_bin} ) {
-        $self->{_parent}->parent->removeconn($self);
-        $self->{_fh}->close;
-    }
-
-    1;
 } 
 
 # -- #perl was here! --
@@ -205,7 +242,7 @@ sub new {
     my ($class, $container, $nick, $filename, $blocksize) = @_;
     my ($size, $port, $fh, $sock, $select);
 
-    $blocksize = 1024 unless $blocksize;
+    $blocksize ||= 1024;
 
     $fh = new IO::File $filename;
 
@@ -219,10 +256,8 @@ sub new {
     $size = $fh->tell;
     $fh->seek(0, SEEK_SET);
 
-    $port = $Net::IRC::DCC::nextport++;
-
     $sock = new IO::Socket::INET( Proto     => "tcp",
-				  LocalPort => $port,
+				  LocalPort => &Socket::INADDR_ANY(),
                                   Listen    => 1);
 
     if (defined $sock) {
@@ -239,7 +274,8 @@ sub new {
     }    
 
     $container->ctcp('DCC SEND', $nick, $filename, 
-                     unpack("N",inet_aton(hostname())), $port, $size);
+                     unpack("N",inet_aton(hostname())),
+		     $sock->sockport(), $size);
 
     $sock->autoflush(1);
 
@@ -249,12 +285,13 @@ sub new {
         _bout       =>  0,         # Bytes we've sent
         _fh         =>  $fh,       # FileHandle we will be reading from.
         _filename   =>  $filename,
+	_frag       =>  '',
 	_nick       =>  $nick,
         _parent     =>  $container,
         _size       =>  $size,     # Size of file
         _socket     =>  $sock,     # Socket we're writing to
         _time       =>  time, 
-	_type       =>  'send',
+	_type       =>  'SEND',
     };
 
     bless $self, $class;
@@ -282,14 +319,23 @@ sub new {
 #  \merlyn: not even sober. --)
 
 sub parse {
-    my ($self, $size) = @_;
-    my  $buf;
+    my ($self, $sock) = @_;
+    my $size = ($self->_getline($sock))[0];
+    my $buf;
 
     # i don't know how useful this is, but let's stay consistent
     $self->{_bin} += 4;
 
+    unless (defined $size) {
+	# Dang! The other end unexpectedly canceled.
+        $self->{_parent}->printerr(($self->peer)[1] . " connection to " .
+				   ($self->peer)[0] . " lost.");
+	$self->{_parent}->parent->removefh($sock);
+	return undef;
+    }
+    
     $size = unpack("N", $size);
-
+    
     if ($size == $self->{_size}) {
         # they've acknowledged the whole file,  we outtie
         $self->{_fh}->close;
@@ -342,11 +388,9 @@ sub new {
     if ($type) {
         # we're initiating
 
-        $port = $Net::IRC::DCC::nextport++;
         $sock = new IO::Socket::INET( Proto     => "tcp",
-				      LocalPort => $port,
+				      LocalPort => &Socket::INADDR_ANY(),
                                       Listen    => 1);
-	$sock->autoflush(1);
 	
         unless (defined $sock) {
             $container->printerr("Couldn't open socket: $!");
@@ -354,18 +398,21 @@ sub new {
             return undef;
         }
 
+	$sock->autoflush(1);
+
         $container->ctcp('DCC CHAT', $nick, 'chat',  
-                         unpack("N",inet_aton(hostname)), $port);
+                         unpack("N",inet_aton(hostname)), $sock->sockport());
 
 	$self = {
 	    _bin        =>  0,      # Bytes we've recieved thus far
 	    _bout       =>  0,      # Bytes we've sent
 	    _connected  =>  1,
+	    _frag       =>  '',
 	    _nick       =>  $nick,  # Nick of the client on the other end
 	    _parent     =>  $container,
 	    _socket     =>  $sock,  # Socket we're reading from
 	    _time       =>  time,
-	    _type       =>  'chat',
+	    _type       =>  'CHAT',
 	};
 	
 	bless $self, $class;
@@ -385,7 +432,7 @@ sub new {
 	}
 	
     } else {      # we're connecting
-	
+
         $address = inet_ntoa(pack("N",$address));
         $sock = new IO::Socket::INET( Proto    => "tcp",
 				      PeerAddr => "$address:$port");
@@ -410,10 +457,13 @@ sub new {
 	    _parent     =>  $container,
 	    _socket     =>  $sock,  # Socket we're reading from
 	    _time       =>  time,
-	    _type       =>  'chat',
+	    _type       =>  'CHAT',
 	};
 	
 	bless $self, $class;
+	
+	$self->{_parent}->parent->addfh($self->socket,
+					$self->can('parse'), 'rw', $self);
     }
 
     return $self;
@@ -429,8 +479,10 @@ sub new {
 #  \merlyn: I don't realiy have that mch in my wallet.
 
 sub parse {
-    my ($self, $line) = @_;
-
+    my ($self, $sock) = @_;
+    my $line = ($self->_getline($sock))[0];
+    return unless defined $line;
+    
     $self->{_bin} += length($line);
 
     return undef if $line eq "\n";
@@ -485,7 +537,7 @@ sub parse {
     $sock = $self->{_socket}->accept;
     $self->{_parent}->{_socket} = $sock;
 
-    if ($self->{_parent}->{_type} eq 'send') {
+    if ($self->{_parent}->{_type} eq 'SEND') {
 	# ok, to get the ball rolling, we send them the first packet.
 	my $buf;
 	unless (defined $self->{_parent}->{_fh}->
@@ -512,7 +564,7 @@ Net::IRC::DCC - Object-oriented interface to a single DCC connection
 
 =head1 SYNOPSIS
 
-Hard hat area: This section under construction. Watch for falling referents.
+Hard hat area: This section under construction.
 
 =head1 DESCRIPTION
 
