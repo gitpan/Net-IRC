@@ -1,0 +1,1346 @@
+#####################################################################
+#                                                                   #
+#   Net::IRC -- Object-oriented Perl interface to an IRC server     #
+#                                                                   #
+#   Connection.pm: The basic functions for a simple IRC connection  #
+#                                                                   #
+#                                                                   #
+#          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
+#                       All rights reserved.                        #
+#                                                                   #
+#      This module is free software; you can redistribute it        #
+#      and/or modify it under the terms of the Perl Artistic        #
+#             License, distributed with this module.                #
+#                                                                   #
+#####################################################################
+
+
+#####################################################################
+#  Here's the headers. Package vars are all defined at the bottom,  #
+#       though, because they're big and long and boring. :P         #
+#####################################################################
+
+package Net::IRC::Connection;
+
+use Net::IRC::Event;
+use Net::IRC::DCC;
+use IO::Socket;
+use strict;               # A little anal-retention never hurt...
+use vars (                # with a few exceptions...
+	  '$AUTOLOAD',    #   - the name of the sub in &AUTOLOAD
+	  '%_udef',       #   - the hash containing the user's global handlers
+	 );
+
+#####################################################################
+#        Methods start here, arranged in alphabetical order.        #
+#####################################################################
+
+
+# This sub is the common backend to add_handler and add_generic_handler
+#
+sub _add_generic_handler
+{
+    my ($self, $event, $ref, $rp, $hash_ref, $real_name) = @_;
+    my $ev;
+    my %define = ( "replace" => 0, "before" => 1, "after" => 2 );
+
+    unless (@_ >= 3) {
+	$self->printerr("Not enough arguments to $real_name()");
+	return undef;
+    }
+    unless (ref($ref) eq 'CODE') {
+	$self->printerr("Second argument of $real_name isn't a coderef");
+	return undef;
+    }
+
+    # Translate REPLACE, BEFORE and AFTER.
+    if (not defined $rp) {
+	$rp = 0;
+    } elsif ($rp =~ /^\D/) {
+	$rp = $define{lc $rp} || 0;
+    }
+
+    foreach $ev (ref $event eq "ARRAY" ? @{$event} : $event) {
+	# Translate numerics to names
+	if ($ev =~ /^\d/) {
+	    $ev = Net::IRC::Event->trans($ev);
+	    unless ($ev) {
+		$self->printerr("Unknown event type in $real_name: $ev");
+		return undef;
+	    }
+	}
+
+	return $hash_ref->{$ev} = [ $ref, $rp ];
+    }
+}
+# This sub will assign a user's custom function to a particular event which
+# might be received by any Connection object.
+# Takes 3 args:  the event to modify, as either a string or numeric code
+#                   If passed an arrayref, the array is assumed to contain
+#                   all event names which you want to set this handler for.
+#                a reference to the code to be executed for the event
+#    (optional)  A value indicating whether the user's code should replace
+#                the built-in handler, or be called with it. Possible values:
+#                   0 - Replace the built-in handlers entirely. (the default)
+#                   1 - Call this handler right before the default handler.
+#                   2 - Call this handler right after the default handler.
+# These can also be referred to by the #define-like strings in %define.
+sub add_global_handler {
+    my ($self, $event, $ref, $rp) = @_;
+        return $self->_add_generic_handler($event, $ref, $rp,
+					   \%_udef, 'add_global_handler');
+}
+
+# This sub will assign a user's custom function to a particular event which
+# this connection might receive.  Same args as above.
+sub add_handler {
+    my ($self, $event, $ref, $rp) = @_;
+        return $self->_add_generic_handler($event, $ref, $rp,
+					   $self->{_handler}, 'add_handler');
+}
+
+# Why do I even bother writing subs this simple? Sends an ADMIN command.
+# Takes 1 optional arg:  the name of the server you want to query.
+sub admin {
+    my $self = shift;        # Thank goodness for AutoLoader, huh?
+
+    $self->sl("ADMIN" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Takes care of the following methods:  ircname, port, username, socket,
+# verbose, parent.
+# Sets specified attribute, or returns its value if called without args.
+sub AUTOLOAD {
+    my ($self, $meth) = (shift, (split /::/, $AUTOLOAD)[-1]);
+    
+    # Man... I had the greatest pun to go here, but I totally rewrote
+    # the sub. Damn. Ah, well... another day, another lousy joke...
+
+    unless (grep {$meth eq $_} qw(socket verbose parent
+				  ircname port username)) {
+	$self->printerr("No method called \"$meth\" for Connection object.");
+	return undef;
+    }
+    
+    if (@_)  {  $self->{"_$meth"} = shift  }
+    else     {  return $self->{"_$meth"};  }
+}
+
+# Attempts to connect to the specified IRC (server, port) with the specified
+#   (nick, username, ircname). Will close current connection if already open.
+sub connect {
+    my $self = shift;
+
+    if (@_) {
+	my (%arg) = @_;
+
+	$self->nick($arg{'Nick'}) if exists $arg{'Nick'};
+	$self->port($arg{'Port'}) if exists $arg{'Port'};
+	$self->server($arg{'Server'}) if exists $arg{'Server'};
+	$self->ircname($arg{'Ircname'}) if exists $arg{'Ircname'};
+	$self->username($arg{'Username'}) if exists $arg{'Username'};
+    }
+    
+    # Lots of error-checking claptrap first...
+    unless ($self->server) {
+	unless ($ENV{IRCSERVER}) {
+	    $self->printerr("No server address specified in connect()");
+	    return undef;
+	}
+	$self->server( $ENV{IRCSERVER} );
+    }
+    unless ($self->nick) {
+	$self->nick($ENV{IRCNICK} || eval { scalar getpwuid($>) }
+		    || $ENV{USER} || $ENV{LOGNAME} || "WankerBot");
+    }
+    unless ($self->port) {
+	$self->port($ENV{IRCPORT} || 6667);
+    }
+    unless ($self->ircname)  {
+	$self->ircname($ENV{IRCNAME} || eval { (getpwuid($>))[6] }
+		       || "Just Another Perl Hacker");
+    }
+    unless ($self->username) {
+	$self->username(eval { scalar getpwuid($>) } || $ENV{USER}
+			|| $ENV{LOGNAME} || "japh");
+    }
+    
+    # Now for the socket stuff...
+    if ($self->connected) {
+	$self->quit("Changing servers");
+    }
+    
+    $self->parent->changed;
+    my $sock = IO::Socket::INET->new(PeerAddr => $self->server,
+				     PeerPort => $self->port,
+				     Proto    => "tcp",
+				    );
+
+    if ($sock) {
+	$self->socket($sock);
+    } else {
+	$self->printerr(sprintf "Can't open socket for %s:%s !",
+			$self->server, $self->port);
+	$self->error(1);
+	return undef;
+    }
+
+    # Now, log in to the server...
+    unless ($self->sl(sprintf("NICK %s", $self->nick)) &&
+	    $self->sl(sprintf("USER %s %s %s :%s",
+			      $self->username,
+			      "foo.bar.com",
+			      $self->server,
+			      $self->ircname))) {
+	$self->printerr("Couldn't send introduction to server: $!");
+	$self->error(1);
+	$! = "Couldn't send NICK/USER introduction to " . $self->server;
+	return undef;
+    }
+
+    $self->{'connected'} = 1;
+}
+
+# Returns a boolean value based on the state of the object's socket.
+sub connected {
+    my $self = shift;
+    my $sock = $self->socket;
+
+    return ($self->{'connected'} && $sock->opened);
+}
+
+# Sends a CTCP request to some hapless victim(s).
+# Takes at least two args:  the type of CTCP request (case insensitive)
+#                           the nick or channel of the intended recipient(s)
+# Any further args are arguments to CLIENTINFO, ERRMSG, or ACTION.
+sub ctcp {
+    my ($self, $type, $target) = splice @_, 0, 3;
+    $type = uc $type;
+
+    unless ($target) {
+	$self->printerr("Not enough arguments to ctcp()");
+	return undef;
+    }
+
+    if ($type eq "PING") {
+	unless ($self->sl("PRIVMSG $target :\001PING " . time . "\001")) {
+	    $self->printerr("Socket error sending $type request in ctcp()");
+	    return undef;
+	}
+    } elsif (($type eq "CLIENTINFO" or $type eq "ACTION") and @_) {
+	unless ($self->sl("PRIVMSG $target :\001$type " .
+			  join(" ", @_) . "\001")) {
+	    $self->printerr("Socket error sending $type request in ctcp()");
+	    return undef;
+	}
+    } elsif ($type eq "ERRMSG") {
+	unless (@_) {
+	    $self->printerr("Not enough arguments to $type in ctcp()");
+	    return undef;
+	}
+	unless ($self->sl("PRIVMSG $target :\001ERRMSG " .
+			  join(" ", @_) . "\001")) {
+	    $self->printerr("Socket error sending $type request in ctcp()");
+	    return undef;
+	}
+    } else {
+	unless ($self->sl("PRIVMSG $target :\001$type " . 
+		join(" ",@_) . "\001")) {
+	    $self->printerr("Socket error sending $type request in ctcp()");
+	    return undef;
+	}
+    }
+}
+
+# Sends replies to CTCP queries. Simple enough, right?
+# Takes 2 args:  the target person or channel to send a reply to
+#                the text of the reply
+sub ctcp_reply {
+    my $self = shift;
+
+    $self->notice($_[0], "\001" . $_[1] . "\001");
+}
+
+# Dequotes CTCP messages according to ctcp.spec. Nothing special.
+# Then it breaks them into their component parts in a flexible, ircII-
+# compatible manner. This is not quite as trivial. Oh, well.
+# Takes 1 arg:  the line to be dequoted.
+sub dequote {
+    my $line = shift;
+    my ($order, @chunks) = (0, ());    # CHUNG! CHUNG! CHUNG!
+    
+    # Filter misplaced \001s before processing... (Thanks, Tom!)
+    substr($line, rindex($line, "\001"), 1) = '\\a'
+      unless ($line =~ tr/\001//) % 2 == 0;
+    
+    # Thanks to Abigail (abigail@fnx.com) for this clever bit.
+    if (index($line, "\cP") >= 0) {    # dequote low-level \n, \r, ^P, and \0.
+        my (%h) = (n => "\n", r => "\r", 0 => "\0", "\cP" => "\cP");
+        $line =~ s/\cP([\n\r\0\cP])/$h{$1}/g;
+    }
+    $line =~ s/\\([^\\a])/$1/g;  # dequote unnecessarily quoted characters.
+    
+    # -- #perl was here! --
+    #     roy7: Chip Chip he's our man!
+    #  fimmtiu: If he can't do it, Larry can!
+    # ChipDude: I thank you!  No applause, just throw RAM chips!
+    
+    # If true, it's in odd order... ctcp commands start with first chunk.
+    $order = 1 if index($line, "\001") == 0;
+    @chunks = map { s/\\\\/\\/g; $_ } (split /\cA/, $line);
+
+    return ($order, @chunks);
+}
+
+# Standard destructor method for the GC routines. (HAHAHAH! DIE! DIE! DIE!)
+sub DESTROY {
+    my $self = shift;
+    $self->handler("destroy", "nobody will ever use this");
+    $self->quit();
+    # anything else?
+}
+
+# Tells IRC.pm if there was an error opening this connection. It's just
+# for sane error passing.
+# Takes 1 optional arg:  the new value for $self->{'iserror'}
+sub error {
+    my $self = shift;
+
+    $self->{'iserror'} = $_[0] if @_;
+    return $self->{'iserror'};
+}
+
+# Lets the user set or retrieve a format for a message of any sort.
+# Takes at least 1 arg:  the event whose format you're inquiring about
+#           (optional)   the new format to use for this event
+sub format {
+    my ($self, $ev) = splice @_, 0, 2;
+    
+    unless ($ev) {
+        $self->printerr("Not enough arguments to format()");
+	return undef;
+    }
+    
+    if (@_) {
+        $self->{'_format'}->{$ev} = $_[0];
+    } else {
+        return ($self->{'_format'}->{$ev} ||
+                $self->{'_format'}->{'default'});
+    }
+}
+
+# Calls the appropriate handler function for a specified event.
+# BEWARE: The data structure for the handlers is shockingly ugly. I bet this
+#         will be totally incomprehensible to me 10 minutes after I write it.
+# Takes 2 args:  the name of the event to handle
+#                the arguments to the handler function
+sub handler {
+    my ($self, $event) = @_;
+
+    # Get name of event.
+    my $ev;
+    if (ref $event) {
+	$ev = $event->type;
+    } elsif (defined $event) {
+	$ev = $event;
+	$event = Net::IRC::Event->new($event, '', '', '');
+    } else {
+	$self->printerr("Not enough arguments to handler()");
+	return undef;
+    }
+
+    my $handler = $self->{_handler}->{$ev} || $_udef{$ev};
+    my ($code, $rp) = (undef, undef);
+    if ($handler && ref($handler) eq 'ARRAY') {
+	($code, $rp) = @$handler;
+    }
+    
+    # If we have args left, try to call the handler.
+    unless (defined($rp) && $code) {
+	$self->_default($event);
+    } elsif ($rp == 0) {                 # REPLACE
+	&$code($self, $event);
+    } elsif ($rp == 1) {                 # BEFORE
+	&$code($self, $event);
+	$self->_default($event);
+    } elsif ($rp == 2) {                 # AFTER
+	$self->_default($event);
+	&$code($self, $event);
+    } else {
+	$self->printerr("Bad parameter passed to handler(): rp=$rp");
+	return undef;
+    }
+    return 1;
+}
+
+# Lets a user set hostmasks to discard certain messages from, or (if called
+# with only 1 arg), show a list of currently ignored hostmasks of that type.
+# Takes 2 args:  type of ignore (public, msg, ctcp, etc)
+#    (optional)  [mask(s) to be added to list of specified type]
+sub ignore {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to ignore()");
+	return undef;
+    }
+    if (@_ == 1) {
+	if (exists $self->{_ignore}->{$_[0]}) {
+	    return @{ $self->{_ignore}->{$_[0]} };
+	} else {
+	    return ();
+	}
+    } elsif (@_ > 1) {     # code defensively, remember...
+	my $type = shift;
+
+	# I moved this part further down as an Obsessive Efficiency
+	# Initiative. It shouldn't be a problem if I do _parse right...
+	# ... but those are famous last words, eh?
+	unless (grep {$_ eq $type}
+		qw(public msg ctcp notice channel nick other all)) {
+
+	    $self->printerr("$type isn't a valid type to ignore()");
+	    return undef;
+	}
+
+	if ( exists $self->{_ignore}->{$type} )  {
+	    push @{$self->{_ignore}->{$type}}, @_;
+	} else  {
+	    $self->{_ignore}->{$type} = [ @_ ];
+	}
+    }
+}
+
+# Yet Another Ridiculously Simple Sub. Sends an INFO command.
+# Takes 1 optional arg: the name of the server to query.
+sub info {
+    my $self = shift;
+    
+    $self->sl("INFO" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Invites someone to an invite-only channel. Whoop.
+# Takes 2 args:  the nick of the person to invite
+#                the channel to invite them to.
+# I hate the syntax of this command... always seemed like a protocol flaw.
+sub invite {
+    my $self = shift;
+
+    unless (@_ > 1) {
+	$self->printerr("Not enough arguments to invite()");
+    }
+    
+    $self->sl("INVITE $_[0] $_[1]");
+}
+
+# Joins a channel on the current server if connected, eh?.
+# Corresponds to /JOIN command.
+# Takes 2 args:  name of channel to join
+#                optional channel password, for +k channels
+sub join {
+    my $self = shift;
+    
+    unless ( $self->connected ) {
+	$self->printerr("Can't join() -- not connected to a server");
+	return undef;
+    }
+
+    # -- #perl was here! --
+    # *** careful is Starch@ncb.mb.ca (The WebMaster)
+    # *** careful is on IRC via server irc.total.net (Montreal Hub &
+    #        Client Server)
+    # careful: well, it's hard to buy more books now too cause where the
+    #          heck do you put them all? i have to move and my puter room is
+    #          almost 400 square feet, it's the largest allowed in my basement
+    #          without calling it a room and pay taxes, hehe
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to join()");
+	return undef;
+    }
+
+    #  \petey: paying taxes by the room?
+    #          \petey boggles
+    # careful: that's what they do for finished basements and stuff
+    # careful: need an emergency exit and stuff
+    #   jjohn: GOOD GOD! ARE THEY HEATHENS IN CANADA? DO THEY EAT THEIR
+    #          OWN YOUNG?
+    
+    return $self->sl("JOIN $_[0]" . ($_[1] ? " $_[1]" : ""));
+
+    # \petey: "On the 'net nobody knows you're Canadian, eh?"
+    #  jjohn: shut up, eh?
+}
+
+# Opens a righteous can of whoop-ass on any luser foolish enough to ask a
+# CGI question in #perl. Eat flaming death, web wankers!
+# Takes at least 2 args:  the channel to kick the bastard from
+#                         the nick of the bastard in question
+#             (optional)  a parting comment to the departing bastard
+sub kick {
+    my $self = shift;
+
+    unless (@_ > 1) {
+	$self->printerr("Not enough arguments to kick()");
+	return undef;
+    }
+    return $self->sl("KICK $_[0] $_[1]" . ($_[2] ? " $_[2]" : ""));
+}
+
+# Gets a list of all the servers that are linked to another visible server.
+# Takes 2 optional args:  it's a bitch to describe, and I'm too tired right
+#                         now, so read the RFC.
+sub links {
+    my ($self) = (shift, undef);
+
+    $self->sl("LINKS" . (scalar(@_) ? " " . join(" ", @_[0,1]) : ""));
+}
+
+
+# Requests a list of channels on the server, or a quick snapshot of the current
+# channel (the server returns channel name, # of users, and topic for each).
+sub list {
+    my $self = shift;
+
+    $self->sl("LIST " . join(",", @_));
+}
+
+# Sends an action to the channel/nick you specify. It's truly amazing how
+# many IRCers have no idea that /me's are actually sent via CTCP.
+# Takes 2 args:  the channel or nick to bother with your witticism
+#                the action to send (e.g., "weed-whacks billn's hand off.")
+sub me {
+    my $self = shift;
+
+    $self->ctcp("ACTION", $_[0], $_[1]);
+}
+
+# Change channel and user modes (this one is easy... the handler is a bitch.)
+# Takes at least 2 args:  the target of the command (channel or nick)
+#                         the mode string (i.e., "-boo+i")
+#             (optional)  operands of the mode string (nicks, hostmasks, etc.)
+sub mode {
+    my $self = shift;
+
+    unless (@_ > 1) {
+	$self->printerr("Not enough arguments to mode()");
+	return undef;
+    }
+    $self->sl("MODE $_[0] $_[1] " . join(" ", @_[2..$#_]));
+}
+
+# Requests the list of users for a particular channel (or the entire net, if
+# you're a masochist).
+# Takes 1 or more optional args:  name(s) of channel(s) to list the users from.
+sub names {
+    my $self = shift;
+
+    $self->sl("NAMES " . join(",", @_));
+    
+}   # Was this the easiest sub in the world, or what?
+
+# Creates a new IRC object and assigns some default attributes.
+sub new {
+    my $proto = shift;
+
+    # -- #perl was here! --
+    # <\merlyn> just don't use ref($this) || $this;
+    # <\merlyn> tchrist's abomination.
+    # <\merlyn> lame lame lame.  frowned upon by any OO programmer I've seen.
+    # <tchrist> randal disagrees, but i don't care.
+    # <tchrist> Randal isn't being flexible/imaginative.
+    # <ChipDude> fimm: WRT "ref ($proto) || $proto", I'm against. Class
+    #            methods and object methods are distinct.
+
+    # my $class = ref($proto) || $proto;             # Man, am I confused...
+    
+    my $self = {                # obvious defaults go here, rest are user-set
+		'_port'       => 6667,
+		# Evals are for non-UNIX machines, just to make sure.
+		'_username'   => eval { scalar getpwuid($>) } || $ENV{USER}
+		|| $ENV{LOGNAME} || "japh",
+		'_ircname'    => $ENV{IRCNAME} || eval { (getpwuid($>))[6] }
+		|| "Just Another Perl Hacker",
+		'_nick'       => $ENV{IRCNICK} || eval { scalar getpwuid($>) }
+		|| $ENV{USER} || $ENV{LOGNAME} || "WankerBot",  # heheh...
+		'_ignore'     => {},
+		'_errout'     => [ \*STDERR ],
+		'_output'     => [ \*STDOUT ],
+		'_handler'    => {},
+		'_verbose'    =>  0,       # Is this an OK default?
+		'_parent'     =>  shift,
+		'connected'   =>  0,
+		'_format' => {
+		    'default' => "[%f:%t]  %m  <%d>",
+		}
+	       };
+    
+    bless $self, $proto;
+    # do any necessary initialization here
+    $self->connect(@_) if @_;
+    
+    return $self;
+}
+
+# Creates and returns a DCC CHAT object, analogous to IRC.pm's newconn().
+# Takes at least 2 args:  A boolean value indicating whether or not you are
+#                            initiating the CHAT connection.
+#                         An Event object for the DCC CHAT request.
+#                    OR   A list or listref of args to be passed to new(),
+#                         consisting of:
+#                           - The address to connect to
+#                           - The port to connect on
+sub new_chat {
+    my $self = shift;
+    my ($init, $nick, $address, $port);
+
+    if (ref($_[0]) =~ /Event/) {
+	# If it's from an Event object, we can't be initiating, right?
+	($init, undef, undef, undef, $address, $port) = (0, $_[0]->args);
+	$nick = $_[0]->nick;
+
+    } elsif (ref($_[0]) eq "ARRAY") {
+	($init, $nick, $address, $port) = @{$_[0]};
+    } else {
+	($init, $nick, $address, $port) = @_;
+    }
+
+    # -- #perl was here! --
+    #          gnat snorts.
+    #    gnat: no fucking microsoft products, thanks :)
+    # ^Pudge_: what about non-fucking MS products?  i hear MS Bob is a virgin.
+    
+    my $dcc = Net::IRC::DCC::CHAT->new($self, $init, $nick, $address, $port);
+    
+    $self->parent->addconn($dcc) if $dcc;
+    return $dcc;
+}
+
+# Creates and returns a DCC GET object, analogous to IRC.pm's newconn().
+# Takes at least 1 arg:   An Event object for the DCC SEND request.
+#                    OR   A list or listref of args to be passed to new(),
+#                         consisting of:
+#                           - The name of the file to receive
+#                           - The address to connect to
+#                           - The port to connect on
+#                           - The size of the incoming file
+sub new_get {
+    my $self = shift;
+    my ($name, $address, $port, $size);
+
+    if (ref($_[0]) =~ /Event/) {
+	(undef, undef, $name, $address, $port, $size) = $_[0]->args;
+    } elsif (ref($_[0]) eq "ARRAY") {
+	($name, $address, $port, $size) = @{$_[0]};
+    } else {
+	($name, $address, $port, $size) = @_;
+    }
+
+    my $dcc = Net::IRC::DCC::GET->new($self, $address, $port, $size, $name);
+
+    $self->parent->addconn($dcc) if $dcc;
+    return $dcc;
+}
+
+# Creates and returns a DCC SEND object, analogous to IRC.pm's newconn().
+# Takes at least 2 args:  The nickname of the person to send to
+#                         The name of the file to send
+#             (optional)  The blocksize for the connection (default 1k)
+sub new_send {
+    my $self = shift;
+    my ($nick, $filename, $blocksize);
+    
+    if (ref($_[0]) eq "ARRAY") {
+	($nick, $filename, $blocksize) = @{$_[0]};
+    } else {
+	($nick, $filename, $blocksize) = @_;
+    }
+
+    my $dcc = Net::IRC::DCC::SEND->new($self, $nick, $filename, $blocksize);
+
+    $self->parent->addconn($dcc) if $dcc;
+    return $dcc;
+}
+
+# Selects nick for this object or returns currently set nick.
+# No default; must be set by user.
+# If changed while the object is already connected to a server, it will
+# automatically try to change nicks.
+# Takes 1 arg:  the nick. (I bet you could have figured that out...)
+sub nick {
+    my $self = shift;
+
+    if (@_)  {
+	$self->{'_nick'} = shift;
+	if ($self->connected) {
+	    return $self->sl("NICK " . $self->{'_nick'});
+	}
+    }
+    else
+      {  return $self->{'_nick'}  }
+}
+
+# Sends a notice to a channel or person.
+# Takes 2 args:  the target of the message (channel or nick)
+#                the text of the message to send
+sub notice {
+    my ($self, $to) = splice @_, 0, 2;
+    
+    unless (@_) {
+	$self->printerr("Not enough arguments to notice()");
+	return undef;
+    }
+    $self->sl("NOTICE $to :" . join("", @_));
+}
+
+# Makes you an IRCop, if you supply the right username and password.
+# Takes 2 args:  Operator's username
+#                Operator's password
+sub oper {
+    my $self = shift;
+
+    unless (@_ > 1) {
+	$self->printerr("Not enough arguments to oper()");
+	return undef;
+    }
+    
+    $self->sl("OPER $_[0] $_[1]");
+}
+
+# This function splits apart a raw server line into its component parts
+# (message, target, message type, CTCP data, etc...) and passes it to the
+# appropriate handler. Takes 1 arg:  the raw server line.
+sub parse {
+    my ($self, $line) = @_;
+    my ($from, $type, $message, @stuff, $itype, $ev);
+
+    unless ($line) {
+	$self->printerr("Not enough arguments to parse()");
+	return undef;
+    }
+
+    # Clean the lint filter every 2 weeks...
+    $line =~ s/[\012\015]+$//;
+    return undef unless $line;
+
+    # Like the RFC says: "respond as quickly as possible..."
+    if ($line =~ /^PING/) {
+        $ev = (Net::IRC::Event->new( "ping",
+				     $self->server,
+				     $self->nick,
+				     "serverping",   # FIXME?
+				     substr($line, 5)
+				    ));
+
+    # Had to move this up front to avoid a particularly pernicious bug.
+    } elsif ($line =~ /^NOTICE/) {
+	$ev = Net::IRC::Event->new( "other",
+				    $self->server,
+				    '',
+				    'server',
+				    $line );
+	
+    
+    # Spurious backslashes are for the benefit of cperl-mode, of course.
+    # Assumptions:  all hostnames have periods in them
+    #               all non-numeric message types begin with a letter
+    } elsif ($line =~ /^:?
+	     ([][}{\w\\\`^|\-]+?      # The nick part (valid nickname chars)
+	      !                        # The nick-username separator
+	      .+?                      # The username
+	      \@)?                     # Umm, duh...
+	     [^.]+?\.                 # Everything up to the first period
+	     \S+?                     # The hostname (RFC noncompliance sucks!)
+	     \s+                      # Space between mask and message type
+	     [A-Za-z]                 # First char of message type
+	     [^\s:]+?                 # The rest of the message type
+	     /x)                      # That ought to do it for now...
+    {
+	$line = substr $line, 1 if $line =~ /^:/;
+	($from, $line) = split ":", $line, 2;
+	($from, $type, @stuff) = split /\s+/, $from;
+	$type = lc $type;
+	
+	# This should be fairly intuitive... (cperl-mode sucks, though)
+	if (defined $line and index($line, "\001") >= 0) {
+	    $itype = "ctcp";
+	    unless ($type eq "notice") {
+		$type = (($stuff[0] =~ tr/\#\&//) ? "public" : "msg");
+	    }
+	} elsif ($type eq "privmsg") {
+	    $itype = $type = (($stuff[0] =~ tr/\#\&//) ? "public" : "msg");
+	} elsif ($type eq "notice") {
+	    $itype = "notice";
+	} elsif ($type eq "join" or $type eq "part" or
+		 $type eq "mode" or $type eq "topic" or
+		 $type eq "kick") {
+	    $itype = "channel";
+	} elsif ($type eq "nick") {
+	    $itype = "nick";
+	} else {
+	    $itype = "other";
+	}
+	
+	# This goes through the list of ignored addresses for this message
+	# type and drops out of the sub if it's from an ignored hostmask.
+	
+	study $from;    # This needs to be benchmarked for speed later.
+	foreach ( $self->ignore($itype), $self->ignore("all") ) {
+	    $_ = quotemeta; s/\\\*/.*/g;
+	    return 1 if $from =~ /$_/;
+	}
+	
+	# It used to look a lot worse. Here was the original version...
+	# the optimization above was proposed by Silmaril, for which I am
+	# eternally grateful. (Mine still looks cooler, though. :)
+	
+	# return if grep { $_ = join('.*', split(/\\\*/,
+	#                  quotemeta($_)));  /$from/ }
+	# ($self->ignore($type), $self->ignore("all"));
+
+	# Add $line to @stuff for the handlers
+	push @stuff, $line if defined $line;
+	
+	# Now ship it off to the appropriate handler and forget about it.
+	if ( $itype eq "ctcp" ) {       # it's got CTCP in it!
+	    $self->parse_ctcp($type, $from, $stuff[0], $line);
+	    return 1;
+	      
+	}  elsif ($type eq "public" or $type eq "msg"   or
+		  $type eq "notice" or $type eq "mode"  or
+		  $type eq "join"   or $type eq "part"  or
+		  $type eq "topic"  or $type eq "invite" ) {
+	    
+	    $ev = Net::IRC::Event->new( $type,
+					$from,
+					shift(@stuff),
+					$type,
+					@stuff,
+					);
+	} elsif ($type eq "quit" or $type eq "nick") {
+	    
+	    $ev = Net::IRC::Event->new( $type,
+					$from,
+					$from,
+					$type,
+					@stuff,
+					);
+	} elsif ($type eq "kick") {
+	    
+	    $ev = Net::IRC::Event->new( $type,
+					$from,
+					$stuff[1],
+					$type,
+					@stuff[0,2..$#stuff],
+					);
+
+	} elsif ($type eq "kill") {
+	    $ev = Net::IRC::Event->new($type,
+				       $from,
+				       '',
+				       $type,
+				       $line);   # Ahh, what the hell.
+	} else {
+	    $self->printerr("Unknown event type: $type");
+	}
+    }
+    elsif ($line =~ /^:?       # Here's Ye Olde Numeric Handler!
+           .+?                 # the server's name (can't assume RFC hostname)
+           \s+?                # Some spaces here...
+           \d+?                # The actual number
+           \b/x                # Some other crap, whatever...
+	   ) {
+	$ev = $self->parse_num($line);
+#        ($from, $type, @stuff) = split /\s+/, $line;
+#        $from = substr $from, 1 if $from =~ /^:/;
+#	
+#	$ev = Net::IRC::Event->new( $type,
+#				    $from,
+#				    '',
+#				    'server',
+#				    @stuff );
+	
+    } elsif ($line =~ /^ERROR/) {
+	if ($line =~ /^ERROR :Closing link/) {      # is this compatible?
+	    $ev = Net::IRC::Event->new( "disconnect",
+					$self->server,
+					'',
+					'error',
+					($line =~ /(.*)/));
+	} else {
+	    $ev = Net::IRC::Event->new( "error",
+					$self->server,
+					'',
+					'error',
+					(split /:/, $line, 2)[1]);
+	}
+    }
+    
+    if ($ev) {
+	$self->handler($ev);
+	return 1;
+    } else {
+	# If it gets down to here, it's some exception I forgot about. :P
+	$self->printerr("Funky parse case: $line\n");
+	return undef;
+    }
+}
+
+# The backend that parse() sends CTCP requests off to. Pay no attention
+# to the camel behind the curtain.
+# Takes 4 arguments:  the type of message
+#                     who it's from
+#                     the first bit of stuff
+#                     the line from the server.
+sub parse_ctcp {
+    my ($self, $type, $from, $stuff, $line) = @_;
+	
+    my ($one, $two) = (undef, undef);
+    my ($odd, @foo) = (&dequote($line));
+
+    while (($one, $two) = (splice @foo, 0, 2)) {
+	
+	($one, $two) = ($two, $one) if $odd;
+	
+	my ($ctype) = $one =~ /^(\w+)\b/;
+	my $prefix = undef;
+	if ($type eq 'notice') {
+	    $prefix = 'cr';
+	} elsif ($type eq 'public' or
+		 $type eq 'msg'   ) {
+	    $prefix = 'c';
+	} else {
+	    $self->printerr("Unknown CTCP type: $type");
+	    return undef;
+	}
+	
+	if ($prefix) {
+	    my $handler = $prefix . $ctype;
+
+	    # -- #perl was here! --
+	    # fimmtiu: Words cannot describe my joy. Sil, you kick ass.
+	    # fimmtiu: I was passing the wrong arg to Event::new()
+	    
+	    $self->handler(Net::IRC::Event->new($handler, $from, $stuff,
+						$handler, (split /\s/, $one)));
+	}
+
+	# This next line is very likely broken somehow. Sigh.
+	$self->handler(Net::IRC::Event->new($type, $from, $stuff, $type, $two))
+	    if ($two);
+    }
+    return 1;
+}
+
+# Does special-case parsing for numeric events. Separate from the rest of
+# parse() for clarity reasons (I can hear Tkil gasping in shock now. :-).
+# Takes 1 arg:  the raw server line
+sub parse_num {
+    my ($self, $line) = @_;
+
+    my ($from, $type, @stuff) = split /\s+/, $line;
+    $from = substr $from, 1 if $from =~ /^:/;
+
+    return Net::IRC::Event->new( $type,
+				 $from,
+				 '',
+				 'server',
+				 @stuff );
+}
+
+# Helps you flee those hard-to-stand channels.
+# Takes at least one arg:  name(s) of channel(s) to leave.
+sub part {
+    my $self = shift;
+    
+    unless (@_) {
+	$self->printerr("No arguments provided to part()");
+	return undef;
+    }
+    $self->sl("PART " . join(",", @_));    # "A must!!!"
+}
+
+# Prints stuff to the appropriate spot, formatted as per $self->format().
+# Takes at least 2 args:  a boolean value indicating whether it's an error
+#                         the message to be printed
+#            (optional)   up to 10 custom things to be printed
+sub _pr {
+    my ($self, $err, $event, @custom) = @_;
+    my $line;
+    
+    return 1 unless defined $event;
+    if (ref $event eq "Net::IRC::Event") {
+	$line = $self->format($event->type);
+	
+	# Thanks to Abigail (abigail@fnx.com) for the idea for this clever bit.
+	# I'm sure it can be made more efficient, though. Any suggestions?
+	# I'm too tired right now to think of 'em myself. :)
+	
+	my (%h) = ( 'f' => $event->from,
+		    'n' => $event->nick,
+		    'u' => $event->user,
+		    'h' => $event->host,
+		    'c' => $event->type,
+		    'm' => ($event->args)[-1],
+		    '0' => $custom[0],
+		    '1' => $custom[1],
+		    '2' => $custom[2],
+		    '3' => $custom[3],
+		    '4' => $custom[4],
+		    '5' => $custom[5],
+		    '6' => $custom[6],
+		    '7' => $custom[7],
+		    '8' => $custom[8],
+		    '9' => $custom[9],
+		    's' => $self->server,
+		    't' => join(",", ($event->to())),
+		    'd' => scalar localtime,
+		    'D' => time,
+		    '%' => '%',
+		   );
+	
+	$line =~ s/\%([0-9uhdcmnst%])/$h{$1}/g;
+    } else {
+	$line = $event;
+    }
+    
+    foreach my $fh (@{$self->{($err ? '_errout' : '_output')}}) {
+	if (ref $fh eq "GLOB") {
+	    print $fh $line, "\n";
+	} else {
+	    $fh->print($line, "\n");
+	}
+    }
+}
+
+# Prints a message to the defined error filehandle(s).
+# Takes at least 1 arg:  the Event object to print
+#           (optional)   up to 10 custom fields to pass to the formatter
+sub printerr {
+    my $self = shift;
+
+    $self->_pr(1, @_);
+}
+
+# Prints a message to the defined output filehandle(s).
+# Takes at least 1 arg:  the Event object to print
+#           (optional)   up to 10 custom fields to pass to the formatter
+sub print {
+        my $self = shift;
+
+	$self->_pr(0, @_);
+}
+
+# Sends a message to a channel or person.
+# Takes 2 args:  the target of the message (channel or nick)
+#                the text of the message to send
+# Don't use this for sending CTCPs... that's what the ctcp() function is for.
+sub privmsg {
+    my ($self, $to) = splice @_, 0, 2;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to privmsg()");
+	return undef;
+    }
+
+    if (ref($to) =~ /^IO::Socket/) {
+	$to->send(join("", @_) . "\012");
+    } else {
+	$self->sl("PRIVMSG $to :" . join("", @_));
+    }
+}
+
+# Closes connection to IRC server.  (Corresponding function for /QUIT)
+# Takes 1 optional arg:  parting message, defaults to "Leaving" by custom.
+sub quit {
+    my $self = shift;
+
+    # Do any user-defined stuff before leaving
+    $self->handler("selfquit");
+
+    # -- #perl was here! --
+    # <fimmtiu> Should an $irc->quit method return an error if the instance
+    #           isn't connected, or die silently?
+    # <Stupid> fimm:  Go quietly into the night.
+    unless ( $self->connected ) {  return 1  }
+    
+    # Why bother checking for sl() errors now, after all?  :)
+    $self->sl("QUIT :" . (scalar(@_) ? $_[0] : "Leaving"));
+    $self->socket->close;
+    $self->{'connected'} = undef;
+    return 1;
+}
+
+# Lets J. Random IRCop connect one IRC server to another. How uninteresting.
+# Takes at least 1 arg:  the name of the server to connect your server with
+#            (optional)  the port to connect them on (default 6667)
+#            (optional)  the server to connect to arg #1. Used mainly by
+#                          servers to communicate with each other.
+sub sconnect {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to sconnect()");
+	return undef;
+    }
+    $self->sl("CONNECT " . join(" ", @_));
+}
+
+# Sets/changes the IRC server which this instance should connect to.
+# Takes 1 arg:  the name of the server (see below for possible syntaxes)
+#                                       ((syntaxen? syntaxi? syntaces?))
+sub server {
+    my ($self) = shift;
+    
+    if (@_)  {
+	# cases like "irc.server.com:6668"
+	if (index($_[0], ':') > 0) {
+	    my ($serv, $port) = split /:/, $_[0];
+	    if ($port =~ /\D/) {
+		$self->printerr("$port is not a valid port number for server()");
+		return undef;
+	    }
+	    $self->{_server} = $serv;
+	    $self->port($port);
+
+	    # cases like ":6668"  (buried treasure!)
+	} elsif (index($_[0], ':') == 0 and $_[0] =~ /^:(\d+)/) {
+	    $self->port($1);
+
+	    # cases like "irc.server.com"
+	} else {
+	    $self->{_server} = shift;
+	}
+	# Is this behavior OK? It follows IRC client custom...
+	return $self->connect if ($self->connected);
+    }
+    else
+      {  return $self->{_server};  }
+}
+
+# Lets the user tell Net::IRC where his error messages should be going.
+# Takes 1 arg:  the new list of output filehandles.
+# The list can be in @_ or passed as an array ref; the fhs can be passed as
+# \*GLOBS (as per perlsyn) or IO::* objects.
+sub seterr {
+    my ($self, $arg) = shift;
+    
+    unless (@_) {
+        $self->printerr("Not enough arguments to seterr()");
+	return undef;
+    }
+    
+    $self->{'errout'} = [];
+    while (@_) {
+        $arg = shift;
+        
+        unless (ref $arg) {
+            push @{$self->{'_errout'}}, $arg;
+        } elsif (ref $arg eq "ARRAY") {
+            $self->{'_errout'} = $arg;
+        } else {
+	    $self->printerr("seterr() only accepts array references or lists");
+	    return undef;
+	}
+    }
+}
+
+# Lets the user tell Net::IRC where his output should be going.
+# Takes 1 arg:  the new list of output filehandles.
+# The list can be in @_ or passed as an array ref; the fhs can be passed as
+# \*GLOBS (as per perlsyn) or IO::* objects.
+sub setout {
+    my ($self, $arg) = shift;
+    
+    unless (@_) {
+        $self->printerr("Not enough arguments to setout()");
+	return undef;
+    }
+    
+    $self->{'_output'} = [];
+    while (@_) {
+        $arg = shift;
+        
+        unless (ref $arg) {
+	    push @{$self->{'_output'}}, $arg;
+	} elsif (ref $arg eq "ARRAY") {
+	    $self->{'_output'} = $arg;
+	} else {
+            $self->printerr("setout() only accepts array references or lists");
+	    return undef;
+	}
+    }
+}
+
+# Sends a raw IRC line to the server.
+# Corresponds to the internal sirc function of the same name.
+# Takes 1 arg:  string to send to server. (duh. :)
+sub sl {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to sl()");
+	return undef;
+    }
+    
+    # RFC compliance can be kinda nice... ;)
+    my $rv = $self->{_socket}->send("$_[0]\015\012");
+    unless ($rv) {
+	$self->handler("sockerror");
+	return undef;
+    }
+    return $rv;
+    
+    # discards any extra arguments silently... is that bad? Should it join()?
+}
+
+# Tells any server that you're an oper on to disconnect from the IRC network.
+# Takes at least 1 arg:  the name of the server to disconnect
+#            (optional)  a comment about why it was disconnected
+sub squit {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to squit()");
+	return undef;
+    }
+    
+    $self->sl("SQUIT $_[0]" . ($_[1] ? " $_[1]" : ""));
+}
+
+# Gets various server statistics for the specified host.
+# Takes at least 1 arg: the type of stats to request [chiklmouy]
+#            (optional) the server to request from (default is current server)
+sub stats {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments passed to stats()");
+	return undef;
+    }
+
+    $self->sl("STATS $_[0]" . ($_[1] ? " $_[1]" : ""));
+}
+
+# Requests timestamp from specified server. Easy enough, right?
+# Takes 1 optional arg:  a server name/mask to query
+sub time {
+    my ($self, $serv) = (shift, undef);
+
+    $self->sl("TIME" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Sends request for current topic, or changes it to something else lame.
+# Takes at least 1 arg:  the channel whose topic you want to screw around with
+#            (optional)  the new topic you want to impress everyone with
+sub topic {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to topic()");
+	return undef;
+    }
+    
+    # Can you tell I've been reading the Nethack source too much? :)
+    $self->sl("TOPIC $_[0]" . ($_[1] ? " $_[1]" : ""));
+}
+
+# Sends a trace request to the server. Whoop.
+# Take 1 optional arg:  the server or nickname to trace.
+sub trace {
+    my $self = shift;
+
+    $self->sl("TRACE" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Asks the IRC server what version and revision of ircd it's running. Whoop.
+# Takes 1 optional arg:  the server name/glob. (default is current server)
+sub version {
+    my $self = shift;
+
+    unless ($self->connected) {
+	$self->printerr("Not connected; can't send query for version()");
+	return undef;
+    }
+
+    $self->sl("VERSION" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Asks the server about stuff, you know. Whatever. Pass the Fritos, dude.
+# Takes 2 optional args:  the bit of info to ask about
+#                         an "o" (nobody ever uses this...)
+sub who {
+    my $self = shift;
+
+    # Obfuscation!
+    $self->sl( "WHO" . ($_[0] ? " $_[0]" : "") . ($_[1] ? " $_[1]" : ""));
+}
+
+# If you've gotten this far, you probably already know what this does.
+# Takes at least 1 arg:  nickmasks or channels to /whois
+sub whois {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to whois()");
+	return undef;
+    }
+    return $self->sl("WHOIS " . join(",", @_));
+}
+
+
+
+#######################################################################
+#     Screw the methods... we need some Package Global Stuff(tm)!     #
+#######################################################################
+
+
+# This sub executes the default action for an event with no user-defined
+# handlers. It's all in one sub so that we don't have to make 100+ separate
+# anonymous subs stuffed in a hash. (ouch)
+
+sub _default {
+    my ($self, $event) = @_;
+    my $verbose = $self->verbose;
+
+    # Users should only see this if the programmer (me) fucked up.
+    unless ($event) {
+	$self->printerr("You EEEEEDIOT!!! Not enough args to _default()!");
+	return undef;
+    }
+    
+    # Reply to PING from server as quickly as possible.
+    if ($event->type eq "ping") {
+
+	# the ":" is in $line, if present.
+	$self->sl("PONG " . (join ' ', $event->args));
+	
+    } elsif ($event->type eq "quit") {
+        
+    } elsif ($event->type eq "join") {
+        
+    } elsif ($event->type eq "disconnect") {
+	$self->socket->close;
+	$self->parent->changed;
+    }
+
+    return 1;
+}
+
+# This hash will contain any global default handlers that the user specifies.
+
+%_udef = ();
+
+
+
+##############################################################################
+#                           THAT'S ALL, FOLKS...                             #
+#                                                                            #
+#  <fimmtiu>  OK, once you've passed the point where caffeine no longer has  #
+#             any discernible effect on any part of your body but your       #
+#             bladder, it's time to sleep.                                   #
+#  <fimmtiu>  'Night, all.                                                   #
+#    <regex>  Night, fimm                                                    #
+#                                                                            #
+##############################################################################
+1;

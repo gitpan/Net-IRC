@@ -1,0 +1,33 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+
+use Net::IRC;
+use Net::IRC::DCC;
+
+sub on_msg {
+    my ($self, $event) = @_;
+    my ($nick) = $event->nick;
+    my ($arg)  = $event->args;
+
+    $self->print("*$nick*  $arg");
+    
+    $self->new_send($nick,$arg,4096) or do
+        { $self->print("Couldn't send $arg to $nick\n"); return };
+
+    $self->print("Sending $arg to $nick\n");
+}
+
+
+my $irc = new Net::IRC;
+
+my $conn = $irc->newconn(Server      => 'irc.cs.cmu.edu',
+                         Port        => '31337',
+                         Nick        => 'dcctest',
+                         Ircname     => 'dcctest',
+                         Username    => 'dcctest')
+    or die("Can't connect to server\n");
+
+$conn->add_handler('msg', \&on_msg);
+
+$irc->start;

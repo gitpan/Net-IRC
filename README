@@ -1,0 +1,144 @@
+Net::IRC 0.41  README        Dennis Taylor        Wed Dec 10 16:08:21 CST 1997
+==============================================================================
+
+Table of Contents
+------------------------
+
+1.  Introduction
+2.  Availability
+3.  Prerequisites
+4.  Installation
+5.  Demonstration Script
+6.  Bugs
+7.  Copyright
+8.  Developer Information
+
+
+
+1. Introduction
+------------------------
+
+    Welcome to Net::IRC, a work in progress. First intended to be a quick tool
+for writing an IRC script in Perl, Net::IRC has grown into a comprehensive
+Perl implementation of the IRC protocol (RFC 1459), supported and developed by
+several members of the EFnet IRC channel #perl.
+
+    Please read the Changes file for details about recent updates, and the
+Bugs section of this document for notes about future improvements. There is as
+of yet no formal documentation, but the sample script included with the
+package should give the clueful reader an idea of how it works. Someday, we'll
+actually get around to writing PODs for it... once it's reasonably stable.
+
+    PLEASE send the authors feedback and advice. Contact information can be
+found at the end of this file. 
+
+
+
+2. Availability
+------------------------
+
+    The following two identical sites provide source code and information
+about the Net::IRC project:
+
+    http://www.execpc.com/~corbeau/irc/
+    http://betterbox.net/fimmtiu/irc/
+    
+    The working directory for the next release, which is probably of little
+interest to any non-abnormally-curious person reading this, can be found at:
+
+    http://www.execpc.com/~corbeau/irc/dev/
+
+
+
+3. Prerequisites
+------------------------
+
+    Net::IRC requires Perl version 5.004 or higher to install and run.
+Hypothetically, it could run on 5.003_9something with IO::* installed, but
+you may as well upgrade anyhow. The latest version of Perl can be found at
+http://www.perl.com/CPAN/src/latest.tar.gz (for UNIX), or at
+http://www.perl.com/CPAN/ports/ for various non-Unix machines.
+
+
+
+4. Installation
+------------------------
+
+    Same old, same old. If you get through all these steps without anything
+emitting horrible dire warning messages, you're all set. In particular, the
+"perl Makefile.PL" will barf if run with older versions of Perl, but if you
+read the Prerequisites section of this README, you already know that, right?
+
+Do this, in the following order:
+
+        perl Makefile.PL
+        make
+        make install
+
+You may now wish to play around with the...
+
+
+
+5. Demonstration Script
+------------------------
+
+    A sample Net::IRC script is included with the distribution, under the
+creative name "irctest". It doesn't do much more than connect to a server and
+print annoying messages to anyone who talks to it, but that should be enough
+to give you an idea of how the whole enchilada fits together until we actually
+get some real documentation written. Just don't be surprised if IRC admins get
+a clue about it and start killing it as soon as they see one log on. :-)
+
+
+
+6. Bugs
+------------------------
+
+    None.
+    
+    OK, so I'm full of it. Probably tons. In particular, the format system
+doesnt even pretend to work yet, and user-initiated DCCs block indefinitely.
+Also, there's no way to schedule asynchronous events like "run this handler
+every 5 minutes", and the "connection closed" messages for non-Connection
+objects don't tell you which connection closed down. (Doh.)  Expect fixes
+for these soon. Then expect us to find a whole new crop to write about in
+this space. Sigh.
+
+    Should you find one that we may have overlooked, PLEASE get in touch with
+one of the developers (see section 8, below).
+
+
+
+7. Copyright
+------------------------
+
+    This is standard legal boilerplate stuff, I suppose. The names on the
+copyright notice do NOT reflect in any way the time and effort put into this
+project by lots of studly people, but if we did that, we'd have to start a
+small corporation to handle them all in case of legal problems. :-)   All I'm
+saying is, this doesn't mean much, so don't take it personally.
+
+Without further ado... *ahem* :
+
+    This module copyright (c) 1997 Greg Bacon & Dennis Taylor. All rights
+    reserved. This module is free software; you can redistribute it and/or
+    modify it under the terms of the Perl Artistic License, distributed with
+    this module.
+
+
+
+8. Developer Information
+------------------------
+
+    The arduous and dreary task of maintaining and doing various stuff with
+Net::IRC is taken care of by a bunch of people on the EFnet IRC channel #perl
+who have way too much time on their hands. If you're interested in helping
+out, there's a mailing list for Net::IRC development; details can be found at
+http://www.execpc.com/~corbeau/irc/list.html .
+
+    Submit bug reports and problems to Dennis Taylor <corbeau@execpc.com>. If
+you're looking for technical support for a Net::IRC script, your best bet is
+to ask on #perl or the comp.lang.perl.misc newsgroup. Thanks!
+
+
+

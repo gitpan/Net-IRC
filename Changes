@@ -1,0 +1,108 @@
+Revision history for Perl extension Net::IRC.
+
+0.1    Fri Oct 17 00:25:41 CDT 1997
+	- original version; created by h2xs 1.18
+
+0.2    Sat Oct 18 16:00:38 CDT 1997
+ 	- it works now, thanks entirely to Tkil (tkil@scrye.com)
+ 	- substantial cleanup of Connection.pm
+	- Removed "Written and designed by:" line in header comments...
+	  it didn't seem fair to the many other people who are putting
+	  such studly efforts into this.
+
+0.25   Sun Oct 19 06:26:36 CDT 1997
+	- Removed extraneous return values from handler code (don't ask)
+	- It's now possible to have more than one Net::IRC object in a
+	  single script, but I can't see why you'd ever want to.
+	- We now disconnect properly. Woohoo!
+	- Fixed YA CTCP bug.
+	- Fixed up parse() handling for cases like MODE and NICK.
+	- Fixed many stupid bugs that should have been caught long ago.
+	- Lots more, but I can't remember them all. Again, huge gigantic
+	  thanks are due to Tkil for his tireless dedication to hunting
+	  down and patching bugs. You go, man!
+
+0.26   Mon Oct 20 01:37:39 CDT 1997
+	- Fixed Makefile.PL to install IRC.pm and the other module in
+	  different places (it's nice to have make install actually work.)
+
+0.27   Mon Oct 20 23:28:48 CDT 1997
+	- Made trivial changes to the formatted output code (format(),
+	  Event->new(), _pr(), Connection->new()). This should give other
+	  developers a bit clearer idea of where I'm going with it. Time
+	  for extended hacking is scarce right now, alas.
+
+0.28   Fri Oct 24 06:12:42 CDT 1997
+	- Added $conn->me("#perl", "hacks billn to pieces") as an alias to
+	  $conn->ctcp("action", "#perl", "hacks billn to pieces").
+	- Fixed a couple small errors (typos, mostly).
+
+0.29   Sat Oct 25 16:48:19 CDT 1997
+	- Changed "require 5.004;" to "use 5.004;" in IRC.pm.
+	- Added a placeholder DCC.pm to the source tree so I won't have to
+	  go back and change stuff once it's written.
+	- Changed the order of default nick/ircname variables.
+	- Fixed the source tree and makedist script on execpc.com to allow
+	  for easier diffing and patching.
+
+0.3    Tue Nov 25 02:49:37 CST 1997
+	- Makefile.PL now barfs on older versions of Perl.
+	- IRC.pm caches $self->ioselect in select() to clean up the code
+	  a little. OO and procedural style bigots reach a compromise.
+	- IRC.pm's start() and select() methods have been merged.
+	- All eval "code;" statements changed to eval { code; }.
+	- Made small adjustment to Connection->parse() numeric routine.
+	- Working draft of DCC.pm written by borys, who kicks much ass.
+	- Bunch of subsequent revisions to DCC.pm, mostly by archon.
+	- irctest script nearly doubles in size.
+	- IRC.pm, especially start(), gets modified for DCC.pm.
+	- A bunch of other smaller changes associated with DCC.pm that
+	  I'm too tired to write down. You get the idea.
+	- Spent HOURS hacking miscellaneous CTCP and parse() bugs. Millions
+	  of thanks to Silmaril for devoting his brainpower to the bughunt.
+
+0.31   Wed Nov 26 00:19:30 CST 1997
+	- Fixed the irritating "Sender: owner-test@betterbox.net" bug in the
+	  mailing list config. OK, so it doesn't belong in this file, but I
+	  guess it's worth mentioning somewhere.
+	- ctcp_reply() method added to Connection.pm and used in irctest.
+
+0.32   Wed Dec  3 07:59:28 CST 1997
+	- Added new_send(), new_get(), and new_chat() to Connection.pm
+	- Removed ^A-removing stuff in DCC.pm (it's been fixed in Connection).
+	- Completely rewrote the irctest script, with more additions planned.
+	- The numeric event stuff has been farmed off from parse() to a
+	  separate routine, parse_num(). This part is going to present a big
+	  problem in weeks ahead... Jarkko Oikarinen should be shot.
+	- Default block size for DCC SEND now 1k instead of 8k.
+	- DCC SEND and GET now always do binary transfers. If a problem comes
+	  up with this, blame it on tchrist and BeeF. :-)
+
+0.33   Fri Dec  5 14:27:41 CST 1997
+	- Version numbers now more realistic.
+        - Net::IRC now specifically resides under the Artistic License, which
+	  is now distributed with the module. Anyone have a problem with this?
+	- Connection.pm now strips CRs as well as LFs. Thanks, Aryeh!
+	- \r and \n hardcoded as \015 and \012 in some places to avoid
+	  possible cross-platform confusion.
+	- Problems with certain literal handler calls fixed in handler().
+	- irctest is now a full-featured Zippybot! Yow!!
+	- Made a first pathetic stab at documentation, still working on it.
+
+0.4    Wed Dec 10 16:08:21 CST 1997
+	- Made small changes to arg list for DCC::CHAT->new().
+	- Fixed precedence problem in Connection->new_* methods.
+	- Added DCC CHAT and GET capabilities to irctest.
+	- Added 'Proto => "tcp",' to all IO::Socket calls in DCC.pm, after
+	  being led astray by incorrect documentation. :-)
+	- User notification for dropped connections is more polite.
+	- Change to fragment handling in IRC->start().
+	- DCC CHAT->new() now requires nick as argument.
+	- privmsg() can be used to send DCC CHAT messages... just pass it
+	  an IO::Socket instead of a nick.
+	- Removed some debugging prints that accidentally got left in
+	  a few parts of the code. Doh!
+
+0.41   date
+	- Fixed the order of args to Connection->ctcp().
+	- 
