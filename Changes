@@ -398,3 +398,16 @@ Revision history for Perl extension Net::IRC.
 	  - Hopefully this doesn't break anyone, this was an undocumented
 	    access to the IRC 'TIME' command.
 	- Updated docs slightly, pointing to new webpage, etc.
+
+0.75   Fri Apr 30 who cares what time? 2004
+	- Hopefully fixed mysterious LocalAddr-related connection problems
+	- Rewrote event output system - created EventQueue
+	- Added add_default_handler for hooking all events at once
+	- UnrealIrcd events added (thanks to Hendrik Frenzel)
+        - Conditional require of Time::HiRes now works right in its absence
+          (thanks to Adam Monsen <adamm@wazamatta.com>)
+	- Massive readability/maintainability changes
+	  - Subs ordered in logical order, not alphabetical
+	  - Indentation
+	- Updated current maintainers (should have been changed for 0.74)
+

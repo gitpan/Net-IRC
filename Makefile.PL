@@ -10,6 +10,8 @@ WriteMakefile(
 		  'Connection.pm' => '$(INST_LIBDIR)/IRC/Connection.pm',
 		  'Event.pm'      => '$(INST_LIBDIR)/IRC/Event.pm',
 		  'DCC.pm'        => '$(INST_LIBDIR)/IRC/DCC.pm',
+                  'EventQueue.pm' => '$(INST_LIBDIR)/IRC/EventQueue.pm',
+		  'Entry.pm'      => '$(INST_LIBDIR)/IRC/EventQueue/Entry.pm',
 	      },
               'PREREQ_PM' => {
                   'IO::Select'    => 0,

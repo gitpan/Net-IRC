@@ -22,27 +22,14 @@ Table of Contents
 
     Welcome to Net::IRC, a work in progress. First intended to be a quick tool
 for writing an IRC script in Perl, Net::IRC has grown into a comprehensive
-Perl implementation of the IRC protocol (RFC 1459), supported and developed by
-several members of the EFnet IRC channel #net-irc.
-
-    Please read the Changes file for details about recent updates, and the
-Bugs section of this document for notes about future improvements. This is
-the second version of Net::IRC to come with documentation... albeit incomplete
-and not terribly useful documentation, but we'll get it fleshed out soon
-enough, so bear with us.
-
-    PLEASE send the authors feedback and advice. Contact information can be
-found at the end of this file. Writing really annoying bots with this module
-is punishable by having merlyn sing "The Rainbow Connection" to you... watch
-your step.
-
+Perl implementation of the IRC protocol (RFC 1459).
 
 
 2. Availability
 ------------------------
 
 	CPAN, of course. http://www.perl.com/CPAN/modules/by-module/Net/
-
+	Also, Sourceforge: http://sourceforge.net/project/net-irc
 
 
 3. Prerequisites
@@ -106,44 +93,19 @@ be careful.
 6. Bugs
 ------------------------
 
-    Quite a few. Below are a list of the ones that have been identified
-and are being worked on:
-	-> Connecting fails mysteriously on some machines
-	-> DCC seems to be full of small bugs
-	-> Format system doesn't work
-	-> Channels with a ':' in confuse the module
-
-     Some improvements are also planned. If you in an idea that isn't 
-implemented and isn't here, please send it again to jeek@jeek.net
-	-> PPM Version
-	-> Handling of unknow CTCP types
-
-
-    Should you find one that we may have overlooked, PLEASE get in touch with
-one of the developers (see section 8, below).
-
+	Please submit bugs at the sourceforge project page for Net::IRC.
+  See section 9 for the address.
 
 
 7. Disclaimer
 ------------------------
 
-	Remember: The Net::IRC team is not responsible for HD crashes, power
-supply meltdown, processor burnout, spontaneous silicon combustion, or nuclear
-fallout resulting from the use of this product. Use at your own risk. It's
-pretty stable, but weird stuff tends to happen anywhere computers are
-involved...
-
+	This software is under no warranty, explicit or implied.  Use at
+  your own risk.
 
 
 8. Copyright
 ------------------------
-
-    This is standard legal boilerplate stuff, I suppose. The names on the
-copyright notice do NOT reflect in any way the time and effort put into this
-project by lots of studly people, but if we did that, we'd have to start a
-small corporation to handle them all in case of legal problems. :-)
-
-Without further ado... *ahem* :
 
     This module copyright (c) 1997 Greg Bacon & Dennis Taylor. All rights
     reserved. This module is free software; you can redistribute it and/or
@@ -156,12 +118,15 @@ Without further ado... *ahem* :
     Any changes after 0.71 are copyright T.J. Eckman, and/or the people
     who submitted them.
 
+    Any changes after 0.73 are under the ownership of their respective
+    submitters.
 
 9. Developer Information
 ------------------------
 
-    Maintenance is now handled by T.J. Eckman <jeek@jeek.net>.
+    Maintenance is now handled via sourceforge:
 
-    Submit bug reports and problems to T.J. Eckman <jeek@jeek.net>. If you're
-looking for technical support for a Net::IRC script, your best bet is to ask on
-EFNet #net-irc or the comp.lang.perl.misc newsgroup. Thanks!
+      http://sourceforge.net/projects/net-irc/
+
+    Bug reports, feature requests and patches should be submitted at the
+    above address.

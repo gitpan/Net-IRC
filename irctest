@@ -282,8 +282,15 @@ sub pickrandom {   # Choose a random quote from the @zippy array.
     return $zippy[ rand scalar @zippy ];
 }
 
+sub blah {
+  my ($self, $event) = @_;
+
+  print "Got event of type: " . $event->type . "\n";
+}
 
 print "Installing handler routines...";
+
+#$conn->add_default_handler(\&blah);
 
 $conn->add_handler('cping',  \&on_ping);
 $conn->add_handler('crping', \&on_ping_reply);
