@@ -43,7 +43,7 @@ $DEBUG_TOOMUCH  = 0xffff;
 # actually included the debugging code in there yet... that's for
 # the next time I get unlazy and unbusy at the same time.  :-)
 
-$VERSION = "0.42";
+$VERSION = "0.43";
 
 
 #####################################################################
@@ -521,10 +521,18 @@ it becomes a little more stable.
 
 addconn()
 
-Takes one argument: a socket or filehandle
-
 Adds the specified socket or filehandle to the list of readable connections
 and notifies C<do_one_loop()>.
+
+Takes 1 arg:
+
+=over
+
+=item 0.
+
+a socket or filehandle to add to the select loop
+
+=back
 
 =item *
 
@@ -562,16 +570,24 @@ newconn()
 
 Creates and returns a new Connection object. All arguments are passed straight
 to C<Net::IRC::Connection-E<gt>new()>; examples of common arguments can be
-found at the top of the page or in the B<Getting Started> section.
+found in the B<Synopsis> or B<Getting Started> sections.
 
 =item *
 
 remove_conn()
 
-Takes one argument: a socket or filehandle
-
 Removes the specified socket or filehandle from the list of readable
 filehandles and notifies C<do_one_loop()> of the change.
+
+Takes 1 arg:
+
+=over
+
+=item 0.
+
+a socket or filehandle to remove from the select loop
+
+=back
 
 =item *
 

@@ -126,3 +126,8 @@ Revision history for Perl extension Net::IRC.
 	- Added a timeout() method to IRC.pm for finer user control over the
 	  select loop. Woo woo!
 
+0.43   Tue Dec 30 18:20:26 CST 1997
+	- Fixed some problems with the previous distribution... a few outdated
+	  files weren't properly removed before tarring by a particularly
+	  mischevious script.
+
