@@ -23,7 +23,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.51";
+$VERSION = "0.52";
 
 
 #####################################################################
@@ -104,9 +104,13 @@ sub do_one_loop {
     
     # Block until input arrives, then hand the filehandle over to the
     # user-supplied coderef. Look! It's a freezer full of government cheese!
-    
-    $timeout = $nexttimer - $time < $self->{_timeout}
-               ? $nexttimer - $time : $self->{_timeout};
+
+    if ($nexttimer) {
+	$timeout = $nexttimer - $time < $self->{_timeout}
+	           ? $nexttimer - $time : $self->{_timeout};
+    } else {
+	$timeout = $self->{_timeout};
+    }
     foreach $ev (IO::Select->select($self->{_read},
 				    $self->{_write},
 				    $self->{_error},

@@ -1,13 +1,14 @@
-Things to do for 0.52:
-======================
 
-  - Fix CTCP PING (again)
+Things to do for the next revision:
+===================================
 
   - Fix the funky parse case for Undernet "Closing Link" messages:
 	Closing Link: Natsune[i.got.net] by NewBrunswick.NJ.US.Undernet.Org
         (Excess Flood)
 
-  - Allow a user's callbacks to give a filehandle to DCC::GET, so that they
-    can choose where to save it.
+  - Allow a user's callbacks to give an open filehandle to DCC::GET, so that
+    they can choose where to save it.
 
   - Fix Connection->quit() to not close the connection so quickly.
+
+

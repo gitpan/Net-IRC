@@ -1081,7 +1081,7 @@ sub parse {
 	if ($ev) {
 	    $self->handler($ev);
 	} else {
-	    # If it gets down to here, it's some exception I forgot about. :P
+	    # If it gets down to here, it's some exception I forgot about.
 	    carp "Funky parse case: $line\n";
 	}
     }
@@ -1096,7 +1096,7 @@ sub parse {
 sub parse_ctcp {
     my ($self, $type, $from, $stuff, $line) = @_;
 	
-    my ($one, $two) = (undef, undef);
+    my ($one, $two);
     my ($odd, @foo) = (&dequote($line));
 
     while (($one, $two) = (splice @foo, 0, 2)) {
@@ -1116,7 +1116,7 @@ sub parse_ctcp {
 	}
 	
 	if ($prefix) {
-	    my $handler = $prefix . $ctype;   # unit. value prob with $ctype
+	    my $handler = $prefix . lc $ctype;   # unit. value prob with $ctype
 
 	    # -- #perl was here! --
 	    # fimmtiu: Words cannot describe my joy. Sil, you kick ass.
@@ -1148,6 +1148,11 @@ sub parse_num {
 				 'server',
 				 @stuff );
 }
+
+# -- #perl was here! --
+# <megas> heh, why are #windowsNT people so quiet? are they all blue screened?
+# <Hiro> they're busy flapping their arms and making swooshing jet noises
+
 
 # Helps you flee those hard-to-stand channels.
 # Takes at least one arg:  name(s) of channel(s) to leave.
@@ -1304,7 +1309,6 @@ sub quit {
 # Any extra args are passed as arguments to the user's coderef.
 sub schedule {
     my ($self, $time, $code) = splice @_, 0, 3;
-    my $parent = $self->parent;
     
     unless ($code) {
 	croak 'Not enough arguments to Connection->schedule()';
@@ -1314,7 +1318,7 @@ sub schedule {
     }
 
     $time = time + int $time;
-    $parent->queue($time, $code, $self, @_);
+    $self->parent->queue($time, $code, $self, @_);
 }
 
 # Lets J. Random IRCop connect one IRC server to another. How uninteresting.

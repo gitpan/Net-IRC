@@ -56,6 +56,21 @@ sub args {
     return @{$self->{'args'}};
 }
 
+# Dumps the contents of an event to STDERR so you can see what's inside.
+# Takes no args.
+sub dump {
+    my ($self, $arg, $counter) = (shift, undef, 0);   # heh heh!
+
+    printf STDERR "TYPE: %-30s    FORMAT: %-30s\n",
+        $self->{'type'}, $self->{'format'};
+    print STDERR "FROM: ", $self->{'from'}, "\n";
+    print STDERR "TO: ", join(", ", @{$self->{'to'}}), "\n";
+    foreach $arg (@{$self->{'args'}}) {
+	print "Arg ", $counter++, ": ", $arg, "\n";
+    }
+}
+
+
 # Sets or returns the format string for this event.
 # Takes 1 optional arg:  the new value for this event's "format" field.
 sub format {

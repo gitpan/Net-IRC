@@ -1,4 +1,4 @@
-Net::IRC 0.51    README       Dennis Taylor       Tue May 19 01:03:57 CDT 1998 
+Net::IRC 0.52    README       Dennis Taylor       Tue Jun  9 21:16:53 CDT 1998
 ==============================================================================
 
 Table of Contents
@@ -10,8 +10,9 @@ Table of Contents
 4.  Installation
 5.  Demonstration Script
 6.  Bugs
-7.  Copyright
-8.  Developer Information
+7.  Disclaimer
+8.  Copyright
+9.  Developer Information
 
 
 
@@ -93,7 +94,7 @@ creative name "irctest". It doesn't do much more than connect to a server and
 print annoying messages to anyone who talks to it, but that should be enough
 to give you an idea of how the whole enchilada fits together until we actually
 get some real documentation written. Just don't be surprised if IRC admins get
-a clue about it and start killing it as soon as they see one log on. :-)
+a clue about it and start killing it as soon as they see one log on...
 
 	Oh, and by the way... if you say "Send me <filename>" to an irctest
 bot, it will send the specified file (if it can) as a demonstration of
@@ -108,7 +109,7 @@ be careful.
     None.
 
     OK, so I'm full of it. Probably tons. In particular, the format system
-doesnt even pretend to work, CTCP PING is rather recalcitrant right now, and
+doesnt even pretend to work, QUIT doesn't quite close the socket right, and
 it may not be 100% compatible with Undernet and other non-EFnet servers.
 Expect fixes for these soon. Then expect us to find a whole new crop to write
 about in this space. Sigh.
@@ -118,7 +119,18 @@ one of the developers (see section 8, below).
 
 
 
-7. Copyright
+7. Disclaimer
+------------------------
+
+	Remember: The Net::IRC team is not responsible for HD crashes, power
+supply meltdown, processor burnout, spontaneous silicon combustion, or nuclear
+fallout resulting from the use of this product. Use at your own risk. It's
+pretty stable, but weird stuff tends to happen anywhere computers are
+involved...
+
+
+
+8. Copyright
 ------------------------
 
     This is standard legal boilerplate stuff, I suppose. The names on the
@@ -136,7 +148,7 @@ Without further ado... *ahem* :
 
 
 
-8. Developer Information
+9. Developer Information
 ------------------------
 
     The arduous and dreary task of maintaining and doing various stuff with

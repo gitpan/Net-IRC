@@ -174,9 +174,9 @@ sub on_dcc {
 # Yells about incoming CTCP PINGs.
 sub on_ping {
     my ($self, $event) = @_;
-    my ($args, $nick) = (($event->args)[0], $event->nick);
+    my $nick = $event->nick;
 
-    $self->ctcp_reply($nick, $args);
+    $self->ctcp_reply($nick, join (' ', ($event->args)));
     $self->print("*** CTCP PING request from $nick received");
 }
 

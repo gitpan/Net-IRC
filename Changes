@@ -206,5 +206,15 @@ Revision history for Perl extension Net::IRC.
 	- The setout() and seterr() methods are dead as a result of the
 	  previous change. You'll have to do your own tee'ing... sorry.
 
+0.52   Tue Jun  9 21:16:53 CDT 1998
+        - Fixed a stupid bug introduced in 0.51 which causes Net::IRC to
+	  attack the CPU like a rabid wolverine. Mea culpa. You just don't
+	  notice these things as much when you're testing each new version
+	  on a quad-CPU UltraSparc. :-)
+	- Fixed an oddity with irctest's cping handler which caused it to
+	  no longer work with the current version of Net::IRC.
+	- Formats will actually work with CTCP events now. Doh.
+	- Added Event->dump method to spew the contents of an Event object
+	  to STDERR for debugging. This is a good thing.
 
 
