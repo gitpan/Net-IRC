@@ -372,6 +372,7 @@ sub userhost {
 	   301 => "away",
 	   302 => "userhost",
 	   303 => "ison",
+	   304 => "rpl_text",           # Bahamut IRCD
 	   305 => "unaway",
 	   306 => "nowaway",
 	   307 => "userip",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
@@ -452,7 +453,7 @@ sub userhost {
 	   437 => "bannickchange",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   438 => "nicktoofast",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   439 => "targettoofast",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
-
+           304 => "servicesdown",           # Bahamut IRCD
 	   441 => "usernotinchannel",
 	   442 => "notonchannel",
 	   443 => "useronchannel",
@@ -474,7 +475,9 @@ sub userhost {
 	   474 => "bannedfromchan",
 	   475 => "badchannelkey",
 	   476 => "badchanmask",
+           477 => "needreggednick",           # Bahamut IRCD
 	   478 => "banlistfull",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+           479 => "secureonlychannel",        # pircd
 	   481 => "noprivileges",
 	   482 => "chanoprivsneeded",
 	   483 => "cantkillserver",
@@ -488,6 +491,12 @@ sub userhost {
 	   511 => "silelistfull",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   513 => "nosuchgline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   513 => "badping",			# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+           600 => "rpl_logon",           # Bahamut IRCD
+           601 => "rpl_logoff",           # Bahamut IRCD
+           604 => "rpl_nowon",           # Bahamut IRCD
+           605 => "rpl_nowoff",           # Bahamut IRCD
+           999 => "numericerror",           # Bahamut IRCD
+
 	  );
 
 

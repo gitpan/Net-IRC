@@ -54,6 +54,9 @@ you may as well upgrade anyhow. The latest version of Perl can be found at
 http://www.perl.com/CPAN/src/latest.tar.gz (for UNIX), or at
 http://www.perl.com/CPAN/ports/ for various non-Unix machines.
 
+    Net::IRC tries to use the Time::HiRes module by default, but will fail
+silently if you do not have it.  If you have Time::HiRes pacing settings
+and calls to schedule() can be fractional.
 
 
 4. Installation
@@ -108,7 +111,6 @@ and are being worked on:
 	-> Connecting fails mysteriously on some machines
 	-> DCC seems to be full of small bugs
 	-> Format system doesn't work
-	-> IPv6 hostnames aren't liked
 	-> Channels with a ':' in confuse the module
 
      Some improvements are also planned. If you in an idea that isn't 

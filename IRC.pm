@@ -11,7 +11,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: IRC.pm,v 1.3 1999/08/12 21:07:08 corbeau Exp $
+# $Id: IRC.pm,v 1.4 2003/04/16 20:58:07 aburke Exp $
 
 
 package Net::IRC;
@@ -21,12 +21,23 @@ BEGIN { require 5.004; }    # needs IO::* and $coderef->(@args) syntax
 use Net::IRC::Connection;
 use IO::Select;
 use Carp;
+
+# all this junk below just to conditionally load a module
+# sometimes even perl is braindead...
+                                                                                                                    
+eval 'use Time::HiRes qw(time)';
+if(!$@) {
+  sub time ();
+  use subs 'time';
+  require Time::HiRes;
+  Time::HiRes->import('time');
+}
+
+
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.73";
-
-
+$VERSION = "0.74";
 
 
 # -- #perl was here --
@@ -490,6 +501,13 @@ Password
 If the IRC server you're trying to write a bot for is
 password-protected, no problem. Just say "C<Password => 'foo'>" and
 you're set.
+
+=item *
+
+SSL
+
+If you wish to connect to an irc server which is using SSL, set this to a
+true value.  Ie: "C<SSL => 1>".
     
 =back
 
@@ -737,7 +755,7 @@ http://www.execpc.com/~corbeau/irc/list.html .
 =head1 URL
 
 Up-to-date source and information about the Net::IRC project can be found at
-http://netirc.betterbox.net/ .
+http://www.sourceforge.net/projects/net-irc/ .
 
 =head1 SEE ALSO
 

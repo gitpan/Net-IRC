@@ -13,6 +13,18 @@
 #                                                                   #
 #####################################################################
 #
+# Net-IRC 0.74
+# ------------
+#
+# Andrew Burke (burke@bitflood.org) changelog
+#
+# 04/2003
+#   -- Use IO::Socket::INET to ease integration of SSL
+#   -- Make IO::Socket::SSL go
+#
+# Net-IRC 0.73
+# ------------
+#
 # Net-IRC 0.72
 # ------------
 # 
@@ -41,10 +53,24 @@ package Net::IRC::Connection;
 use Net::IRC::Event;
 use Net::IRC::DCC;
 use Sys::Hostname ();
-use Socket;
+use IO::Socket;
+use IO::Socket::INET;
 use Symbol;
 use Carp;
+
+# all this junk below just to conditionally load a module
+# sometimes even perl is braindead...
+
+eval 'use Time::HiRes qw(time)';
+if(!$@) {
+  sub time ();
+  use subs 'time';
+  require Time::HiRes;
+  Time::HiRes->import('time');
+}
+
 use strict;               # A little anal-retention never hurt...
+
 use vars (                # with a few exceptions...
 	'$AUTOLOAD',    #   - the name of the sub in &AUTOLOAD
 );
@@ -58,6 +84,8 @@ my %autoloaded = ( 'ircname'  => undef,
 		   'verbose'  => undef,
 		   'parent'   => undef,
                    'hostname' => undef,
+		   'pacing'   => undef,
+                   'ssl'      => undef,
 		 );
 
 # This hash will contain any global default handlers that the user specifies.
@@ -219,6 +247,8 @@ sub connect {
 	$self->server($arg{'Server'}) if exists $arg{'Server'};
 	$self->ircname($arg{'Ircname'}) if exists $arg{'Ircname'};
 	$self->username($arg{'Username'}) if exists $arg{'Username'};
+	$self->pacing($arg{'Pacing'}) if exists $arg{'Pacing'};
+        $self->ssl($arg{'SSL'}) if exists $arg{'SSL'};
     }
 
     # Lots of error-checking claptrap first...
@@ -257,35 +287,24 @@ sub connect {
 	$self->quit("Changing servers");
     }
     
-#    my $sock = IO::Socket::INET->new(PeerAddr => $self->server,
-#				     PeerPort => $self->port,
-#				     Proto    => "tcp",
-#				    );
+    if($self->ssl) {
+      require IO::Socket::SSL;
 
-    $sock = Symbol::gensym();
-    unless (socket( $sock, PF_INET, SOCK_STREAM, getprotobyname('tcp') )) {
-        carp ("Can't create a new socket: $!");
-	$self->error(1);
-	return;
-    }
-
-    # This bind() stuff is so that people with virtual hosts can select
-    # the hostname they want to connect with. For this, I dumped the
-    # astonishingly gimpy IO::Socket. Talk about letting the interface
-    # get in the way of the functionality...
-
-    if ($self->hostname) {
-	unless (bind( $sock, sockaddr_in( 0, inet_aton($self->hostname) ) )) {
-	    carp "Can't bind to ", $self->hostname, ": $!";
-	    $self->error(1);
-	    return;
-	}
-    }
-    
-    if (connect( $sock, sockaddr_in($self->port, inet_aton($self->server)) )) {
-	$self->socket($sock);
-	
+      $self->socket(IO::Socket::SSL->new(PeerAddr  => $self->server,
+                                         PeerPort  => $self->port,
+                                         Proto     => "tcp",
+                                         LocalAddr => $self->hostname,
+                                         ));
     } else {
+
+      $self->socket(IO::Socket::INET->new(PeerAddr  => $self->server,
+                                          PeerPort  => $self->port,
+                                          Proto     => "tcp",
+                                          LocalAddr => $self->hostname,
+                                          ));
+    }
+
+    if(!$self->socket) {
 	carp (sprintf "Can't connect to %s:%s!",
 	      $self->server, $self->port);
 	$self->error(1);
@@ -335,7 +354,7 @@ sub ctcp {
     }
 
     if ($type eq "PING") {
-	unless ($self->sl("PRIVMSG $target :\001PING " . time . "\001")) {
+	unless ($self->sl("PRIVMSG $target :\001PING " . int(time) . "\001")) {
 	    carp "Socket error sending $type request in ctcp()";
 	    return;
 	}
@@ -869,6 +888,9 @@ sub new {
 		_frag       =>  '',
 		_connected  =>  0,
 		_maxlinelen =>  510,     # The RFC says we shouldn't exceed this.
+		_lastsl     =>  0,
+		_pacing     =>  0,       # no pacing by default
+		_ssl	    =>  0,       # no ssl by default
 		_format     => {
 		    'default' => "[%f:%t]  %m  <%d>",
 		},
@@ -1014,7 +1036,7 @@ sub notice {
 
     my ($buf, $length, $line) = (CORE::join("", @_), $self->{_maxlinelen});
 
-    while($buf) {
+    while(length($buf) > 0) {
         ($line, $buf) = unpack("a$length a*", $buf);
         $self->sl("NOTICE $to :$line");
     }
@@ -1062,7 +1084,10 @@ sub parse {
     # <fimmtiu> Much joy now.
     #    archon rejoices
 
-    if (defined recv($self->socket, $line, 10240, 0) and
+    if (defined ($self->ssl ?
+                 $self->socket->read($line, 10240) :
+                 $self->socket->recv($line, 10240, 0))
+        and
 		(length($self->{_frag}) + length($line)) > 0)  {
 	# grab any remnant from the last go and split into lines
 	my $chunk = $self->{_frag} . $line;
@@ -1461,12 +1486,12 @@ sub privmsg {
     #            mouse then, though. :)
     
     if (ref($to) =~ /^(GLOB|IO::Socket)/) {
-        while($buf) {
+        while(length($buf) > 0) {
 	    ($line, $buf) = unpack("a$length a*", $buf);
 	    send($to, $line . "\012", 0);
        	} 
     } else {
-	while($buf) {
+	while(length($buf) > 0) {
 	    ($line, $buf) = unpack("a$length a*", $buf);
 	    if (ref $to eq 'ARRAY') {
 		$self->sl("PRIVMSG ", CORE::join(',', @$to), " :$line");
@@ -1528,7 +1553,7 @@ sub schedule {
 	croak 'Second argument to schedule() isn\'t a coderef';
     }
 
-    $time = time + int $time;
+    $time += time;
     $self->parent->queue($time, $code, $self, @_);
 }
 
@@ -1606,15 +1631,46 @@ sub server {
 }
 
 
-# Sends a raw IRC line to the server.
-# Corresponds to the internal sirc function of the same name.
-# Takes 1 arg:  string to send to server. (duh. :)
+# sends a raw IRC line to the server, possibly with pacing
 sub sl {
     my $self = shift;
     my $line = CORE::join '', @_;
 	
     unless (@_) {
 	croak "Not enough arguments to sl()";
+    }
+
+    if (! $self->pacing) {
+        return $self->sl_real($line);
+    }
+    
+    # calculate how long to wait before sending this line
+    my $time = time;
+    if ($time - $self->{_lastsl} > $self->pacing) {
+	$self->{_lastsl} = $time;
+    } else {
+	$self->{_lastsl} += $self->pacing;
+    }
+    my $seconds = $self->{_lastsl} - $time;
+
+    ### DEBUG DEBUG DEBUG
+    if ($self->{_debug}) {
+	print "S-> $seconds $line\n";
+    }
+    
+    $self->schedule($seconds, \&sl_real, $line);
+}
+
+
+# Sends a raw IRC line to the server.
+# Corresponds to the internal sirc function of the same name.
+# Takes 1 arg:  string to send to server. (duh. :)
+sub sl_real {
+    my $self = shift;
+    my $line = shift;
+	
+    unless ($line) {
+	croak "Not enough arguments to sl_real()";
     }
     
     ### DEBUG DEBUG DEBUG
@@ -1623,7 +1679,9 @@ sub sl {
     }
     
     # RFC compliance can be kinda nice...
-    my $rv = send( $self->{_socket}, "$line\015\012", 0 );
+    my $rv = $self->ssl ?
+        $self->socket->print("$line\015\012") :
+        $self->socket->send("$line\015\012", 0);
     unless ($rv) {
 	$self->handler("sockerror");
 	return;
@@ -1665,7 +1723,7 @@ sub squit {
 
 
 # Gets various server statistics for the specified host.
-# Takes at least 1 arg: the type of stats to request [chiklmouy]
+# Takes at least 2 arg: the type of stats to request [chiklmouy]
 #            (optional) the server to request from (default is current server)
 sub stats {
     my $self = shift;
@@ -1715,7 +1773,8 @@ sub summon {
 
 # Requests timestamp from specified server. Easy enough, right?
 # Takes 1 optional arg:  a server name/mask to query
-sub time {
+# renamed to not collide with things... -- aburke
+sub timestamp {
     my ($self, $serv) = (shift, undef);
 
     $self->sl("TIME" . ($_[0] ? " $_[0]" : ""));

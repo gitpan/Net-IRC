@@ -389,3 +389,12 @@ Revision history for Perl extension Net::IRC.
 
 0.73   Wed Jan 02 13:00:00 GMT 2002
         - Anti's Patch broke MODE handling. Implemented a quick fix.
+
+0.74   Wed Apr 16 Sometime GMT 2003
+	- Added Pacing
+	- Added SSL support
+	- Added Time::HiRes conditional support for fractional times
+	- Net::IRC::Connection::time -> Net::IRC::Connection::timestamp
+	  - Hopefully this doesn't break anyone, this was an undocumented
+	    access to the IRC 'TIME' command.
+	- Updated docs slightly, pointing to new webpage, etc.
