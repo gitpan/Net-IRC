@@ -136,4 +136,12 @@ Revision history for Perl extension Net::IRC.
 	- Scrapped and redid distribution-rolling scripts. You know,
 	  ExtUtils::MakeMaker is really nice.
 
+0.45   Sat Jan  3 15:48:57 CST 1998
+	- All connections now give their names and causes of death upon
+	  expiring. This should make DCC problems much less confusing. :-)
+	- DCC SEND and CHAT no longer block on accept(). Woohoo!
+	- IRC->remove_conn() changed to removeconn() for consistency with
+	  IRC->addconn() and IRC->newconn().
+
+
 

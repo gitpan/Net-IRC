@@ -683,12 +683,12 @@ sub new_chat {
     # -- #perl was here! --
     #          gnat snorts.
     #    gnat: no fucking microsoft products, thanks :)
-    # ^Pudge_: what about non-fucking MS products?  i hear MS Bob is a virgin.
+    #  ^Pudge: what about non-fucking MS products?  i hear MS Bob is a virgin.
     
-    my $dcc = Net::IRC::DCC::CHAT->new($self, $init, $nick, $address, $port);
+    Net::IRC::DCC::CHAT->new($self, $init, $nick, $address, $port);
     
-    $self->parent->addconn($dcc) if $dcc;
-    return $dcc;
+#    $self->parent->addconn($dcc) if $dcc;
+#    return $dcc;
 }
 
 # Creates and returns a DCC GET object, analogous to IRC.pm's newconn().
@@ -734,10 +734,10 @@ sub new_send {
 	($nick, $filename, $blocksize) = @_;
     }
 
-    my $dcc = Net::IRC::DCC::SEND->new($self, $nick, $filename, $blocksize);
+    Net::IRC::DCC::SEND->new($self, $nick, $filename, $blocksize);
 
-    $self->parent->addconn($dcc) if $dcc;
-    return $dcc;
+#    $self->parent->addconn($dcc) if $dcc;
+#    return $dcc;
 }
 
 # Selects nick for this object or returns currently set nick.
@@ -1044,6 +1044,15 @@ sub part {
 	return undef;
     }
     $self->sl("PART " . join(",", @_));    # "A must!!!"
+}
+
+# Tells what's on the other end of a connection. Returns a 2-element list
+# consisting of the name on the other end and the type of connection.
+# Takes no args.
+sub peer {
+    my $self = shift;
+
+    return ($self->server(), "IRC connection");
 }
 
 # Prints stuff to the appropriate spot, formatted as per $self->format().

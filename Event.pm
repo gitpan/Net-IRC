@@ -42,10 +42,14 @@ sub format {
 # Takes 1 optional arg:  the new value for this event's "from" field.
 sub from {
     my $self = shift;
+    my @part;
     
     if (@_) {
-	my @part = split /[\@!]/, $_[0], 3;
-
+	# avoid certain irritating and spurious warnings from this line...
+	{ local $^W;
+	  @part = split /[\@!]/, $_[0], 3;
+        }
+	
 	$self->nick(defined $part[0] ? $part[0] : '');
 	$self->user(defined $part[1] ? $part[1] : '');
 	$self->host(defined $part[2] ? $part[2] : '');

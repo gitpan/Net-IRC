@@ -43,7 +43,7 @@ $DEBUG_TOOMUCH  = 0xffff;
 # actually included the debugging code in there yet... that's for
 # the next time I get unlazy and unbusy at the same time.  :-)
 
-$VERSION = "0.44";
+$VERSION = "0.45";
 
 
 #####################################################################
@@ -71,14 +71,20 @@ sub changed {
 #            (optional)  an error message to print.
 sub closed {
     my ($self, $obj, $err) = @_;
+    my (@peer);
+    
+    $err ||= $!;   # Err can be $! if it's not yet set.
+    
+    if (@peer = $obj->peer) {
 
-    if (ref($obj) eq 'Net::IRC::Connection') {
-
-	$obj->printerr("Connection to " . $obj->server . " closed" .
-		       ($! ? ": $!." : "."));
+	# This is a bit of an ugly hack. Suggestions welcome.
+	until ($obj->can("printerr")) {  $obj = $obj->{_parent};  }
+	
+	$obj->printerr($peer[1] . " to " . $peer[0] . " closed" .
+		       ($err ? ": $err." : "."));
     } else {
 
-	$obj->{_parent}->printerr("Connection closed" . ($! ? ": $!." : "."))
+	$obj->{_parent}->printerr("Connection closed" . ($err ? ": $err." : "."))
 	    if $obj->{_parent};
     }
 }
@@ -145,6 +151,11 @@ sub do_one_loop {
 	#          if (defined $sock...
 	# fimmtiu: Much joy now.
 	#   archon rejoices
+
+	if ($self->{_connhash}->{$sock}->{_nonblock}) {
+	    $self->{_connhash}->{$sock}->parse();
+	    next;
+	}
 	
 	my $frag = $self->{_fraghash}->{$sock};
 	if (defined $sock->recv($input, 10240)) {
@@ -162,13 +173,13 @@ sub do_one_loop {
 		# um, if we can read, i say we should read more than 0
 		# besides, recv isn't returning undef on closed
 		# sockets.  getting rid of this connection...
-		$self->closed($self->{_connhash}->{$sock}, $!);
-		$self->remove_conn($self->{_connhash}->{$sock});
+		$self->closed($self->{_connhash}->{$sock});
+		$self->removeconn($self->{_connhash}->{$sock});
 	    }
 	} else {
 	    # Error, lets scrap this Connection
-	    $self->closed($self->{_connhash}->{$sock}, $!);
-	    $self->remove_conn($self->{_connhash}->{$sock});
+	    $self->closed($self->{_connhash}->{$sock});
+	    $self->removeconn($self->{_connhash}->{$sock});
 	}
 	
 	$self->{_fraghash}->{$sock} = $frag;
@@ -188,7 +199,7 @@ sub new {
 		'_ioselect' => IO::Select->new(),
 		'_queue'    => {},
 		'_qid'      => 'a',
-		'_timeout'  =>  3,
+		'_timeout'  =>  1,
 	    };
 
     bless $self, $proto;
@@ -229,8 +240,8 @@ sub queue {
 }
 
 # Removes a given Connection and sets changed.
-# sub removeconn looks bad, but it'd be consistant with {add,new}conn..
-sub remove_conn {
+# Takes 1 arg:  a Connection (or DCC or whatever) to remove.
+sub removeconn {
     my ($self, $conn) = @_;
     
     @{$self->{_conn}} = grep { $_ != $conn } @{$self->{_conn}};
@@ -540,7 +551,7 @@ changed()
 
 Sets a flag which tells C<do_one_loop()> that the current list of readable
 connections needs to be rebuilt. It's not likely that many users will need
-this... just use C<addconn()> and C<remove_conn()> instead.
+this... just use C<addconn()> and C<removeconn()> instead.
 
 =item *
 
@@ -574,7 +585,7 @@ found in the B<Synopsis> or B<Getting Started> sections.
 
 =item *
 
-remove_conn()
+removeconn()
 
 Removes the specified socket or filehandle from the list of readable
 filehandles and notifies C<do_one_loop()> of the change.

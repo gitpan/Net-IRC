@@ -62,6 +62,10 @@ sub DESTROY {
 						   $self->{_type}));
 }
 
+sub peer {
+    return ( $_[0]->{_nick}, "DCC " . $_[0]->{_type} );
+}
+
 # -- #perl was here! --
 #     orev: hehe...
 # Silmaril: to, not with.
@@ -151,7 +155,7 @@ sub parse {
         $self->{_parent}->printerr("Error writing to " . 
              $self->{_filename} . ": $!");
         $self->{_fh}->close;
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
         return;
     }
 
@@ -161,7 +165,7 @@ sub parse {
     unless ( $self->{_socket}->send( pack("N", $self->{_bin}) ) ) {
         $self->{_parent}->printerr("Error writing to socket: $!");
         $self->{_fh}->close;
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
         return;
     }
 
@@ -170,7 +174,7 @@ sub parse {
     # If we close the socket, the select loop gets screwy because
     # it won't remove its reference to the socket.  weird.
     if ( $self->{_size} && $self->{_size} == $self->{_bin} ) {
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
         $self->{_fh}->close;
     }
 
@@ -237,24 +241,7 @@ sub new {
     $container->ctcp('DCC SEND', $nick, $filename, 
                      unpack("N",inet_aton(hostname())), $port, $size);
 
-    # this accept() blocks.  if they don't connect, the client is hung
-    # what's the fix?
-    $sock = $sock->accept;
-
-    unless (defined $sock) {
-        $container->printerr("Error in accept: $!");
-        $fh->close;
-        return undef;
-    }
-
     $sock->autoflush(1);
-
-    # ok, to get the ball rolling, we send them the first packet.
-    # the rest will get sent from parse()
-    my $buf;
-    return undef unless defined $fh->read($buf,$blocksize);
-    return undef unless defined $sock->send($buf);
-
 
     my $self = {
         _bin        =>  0,         # Bytes we've recieved thus far
@@ -271,6 +258,14 @@ sub new {
     };
 
     bless $self, $class;
+    
+    $sock = Net::IRC::DCC::Accept->new($sock, $self);
+
+    unless (defined $sock) {
+        $container->printerr("Error in accept: $!");
+        $fh->close;
+        return undef;
+    }
 
     return $self;
 }
@@ -298,7 +293,7 @@ sub parse {
     if ($size == $self->{_size}) {
         # they've acknowledged the whole file,  we outtie
         $self->{_fh}->close;
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
         return;
     } 
 
@@ -308,13 +303,13 @@ sub parse {
 
     unless (defined $self->{_fh}->read($buf,$self->{_blocksize})) {
         $self->{_fh}->close;
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
         return;
     }
 
     unless($self->{_socket}->send($buf)) {
         $self->{_fh}->close;
-        $self->{_parent}->parent->remove_conn($self);
+        $self->{_parent}->parent->removeconn($self);
     }
 
     $self->{_bout} += length($buf);
@@ -342,8 +337,7 @@ use Sys::Hostname;
 sub new {
 
     my ($class, $container, $type, $nick, $address, $port) = @_;
-
-    my $sock;
+    my ($sock, $self);
 
     if ($type) {
         # we're initiating
@@ -352,7 +346,8 @@ sub new {
         $sock = new IO::Socket::INET( Proto     => "tcp",
 				      LocalPort => $port,
                                       Listen    => 1);
-
+	$sock->autoflush(1);
+	
         unless (defined $sock) {
             $container->printerr("Couldn't open socket: $!");
             print("Couldn't open socket: $!");
@@ -362,15 +357,27 @@ sub new {
         $container->ctcp('DCC CHAT', $nick, 'chat',  
                          unpack("N",inet_aton(hostname)), $port);
 
-        # this will block, leaving the client in a bad position
-        $sock = $sock->accept;
+	$self = {
+	    _bin        =>  0,      # Bytes we've recieved thus far
+	    _bout       =>  0,      # Bytes we've sent
+	    _connected  =>  1,
+	    _nick       =>  $nick,  # Nick of the client on the other end
+	    _parent     =>  $container,
+	    _socket     =>  $sock,  # Socket we're reading from
+	    _time       =>  time,
+	    _type       =>  'chat',
+	};
+	
+	bless $self, $class;
+	
+        $sock = Net::IRC::DCC::Accept->new($sock, $self);
 
 	if (defined $sock) {
 	    $container->handler(Net::IRC::Event->new('dcc_open',
 						     $nick,
-						     $sock,
+						     $sock->socket,
 						     'chat',
-						     'chat', $sock));
+						     'chat', $sock->socket));
 	    
 	} else {
 	    $container->printerr("Error in DCC CHAT connect: $!");
@@ -382,6 +389,7 @@ sub new {
         $address = inet_ntoa(pack("N",$address));
         $sock = new IO::Socket::INET( Proto    => "tcp",
 				      PeerAddr => "$address:$port");
+	$sock->autoflush(1);
 
         if (defined $sock) {
 	    my $ev = Net::IRC::Event->new('dcc_open',
@@ -389,27 +397,24 @@ sub new {
 					  $sock,
 					  'chat',
 					  'chat', $sock);
-	    
 	} else {
 	    $container->printerr("Error in connect: $!");
 	    return undef;
 	}
+
+	$self = {
+	    _bin        =>  0,      # Bytes we've recieved thus far
+	    _bout       =>  0,      # Bytes we've sent
+	    _connected  =>  1,
+	    _nick       =>  $nick,  # Nick of the client on the other end
+	    _parent     =>  $container,
+	    _socket     =>  $sock,  # Socket we're reading from
+	    _time       =>  time,
+	    _type       =>  'chat',
+	};
+	
+	bless $self, $class;
     }
-
-    $sock->autoflush(1);
-
-    my $self = {
-        _bin        =>  0,      # Bytes we've recieved thus far
-        _bout       =>  0,      # Bytes we've sent
-        _connected  =>  1,
-	_nick       =>  $nick,  # Nick of the client on the other end
-        _parent     =>  $container,
-        _socket     =>  $sock,  # Socket we're reading from
-        _time       =>  time,
-	_type       =>  'chat',
-    };
-
-    bless $self, $class;
 
     return $self;
 }
@@ -447,6 +452,53 @@ sub parse {
 #     with a trucker in the shower.
 # tmtowtdi: uh, yeah...
 #  \merlyn: good topic
+
+
+# Sockets waiting for accept() use this to shoehorn into the select loop.
+package Net::IRC::DCC::Accept;
+
+@Net::IRC::DCC::Accept::ISA = qw(Net::IRC::DCC::Connection);
+
+sub new {
+    my ($class, $sock, $parent) = @_;
+    my ($self);
+
+    $self = {
+	     _nonblock =>  1,
+	     _socket   =>  $sock,
+	     _parent   =>  $parent,
+	     _type     =>  'accept',
+            };
+    
+    bless $self, $class;
+
+    # Tkil's gonna love this one. :-)   But what the hell... it's safe to
+    # assume that the only thing initiating DCCs will be Connections, right?
+    $self->{_parent}->{_parent}->parent->addconn($self);
+    return $self;
+}
+
+sub parse {
+    my ($self) = shift;
+    my ($sock);
+    
+    $sock = $self->{_socket}->accept;
+    $self->{_parent}->{_socket} = $sock;
+
+    if ($self->{_parent}->{_type} eq 'send') {
+	# ok, to get the ball rolling, we send them the first packet.
+	my $buf;
+	unless (defined $self->{_parent}->{_fh}->
+		read($buf, $self->{_parent}->{_blocksize})) {
+	    return undef;
+	}
+	return undef unless defined $sock->send($buf);
+    }
+    
+    $self->{_parent}->{_parent}->parent->addconn($self->{_parent});
+    $self->{_parent}->{_parent}->parent->removeconn($self);
+}
+
 
 
 1;

@@ -1,4 +1,4 @@
-Net::IRC 0.44  README        Dennis Taylor        Wed Dec 31 18:13:32 CST 1997
+Net::IRC 0.45  README        Dennis Taylor        Sat Jan  3 15:48:57 CST 1998
 ==============================================================================
 
 Table of Contents
@@ -98,7 +98,8 @@ a clue about it and start killing it as soon as they see one log on. :-)
 
 	Oh, and by the way... if you say "Send me <filename>" to an irctest
 bot, it will send the specified file (if it can) as a demonstration of
-Net::IRC's DCC interface. This is a potential security hole, so be careful.
+Net::IRC's DCC and scheduler interface. This is a potential security hole, so
+be careful.
 
 
 
@@ -108,11 +109,9 @@ Net::IRC's DCC interface. This is a potential security hole, so be careful.
     None.
 
     OK, so I'm full of it. Probably tons. In particular, the format system
-doesnt even pretend to work yet, hostnames without periods in them make it
-choke, and user-initiated DCCs block on accept() indefinitely. Also, the
-"connection closed" messages for non-Connection objects don't tell you
-which connection closed down. (Doh.)  Expect fixes for these soon. Then
-expect us to find a whole new crop to write about in this space. Sigh.
+doesnt even pretend to work yet, and hostnames without periods in them make it
+choke.  Expect fixes for these soon. Then expect us to find a whole new crop
+to write about in this space. Sigh.
 
     Should you find one that we may have overlooked, PLEASE get in touch with
 one of the developers (see section 8, below).
