@@ -16,3 +16,5 @@ Things to do for the next revision:
   -  Test the server notice stuff. (both "NOTICE :foo" and ":server.com NOTICE :foo")
 
   -  Add a password argument to the connect() method.
+
+  -  Allow chained handlers, and have add_handler return the old handler(s)?

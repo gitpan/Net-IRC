@@ -249,6 +249,22 @@ sub user {
     return $self->{'user'};
 }
 
+
+# -- #perl was here! --
+# <Skrewtape> Rap Olympics... heh
+#    <^Pudge> gb, please tell me you are kidding, that there is no such thing.
+#    <Norton> Nope, he's serious
+#      ^Pudge looks for something to smack
+#    <gbacon> i know nothing about it
+#      <\mjd> Who owns the Rap Olympics?
+#    <gbacon> i wonder what the Rap Decathlon is
+#    <^Pudge> i want an ass-kicking olympics.
+#      <\mjd> ``The Rap Olympics belongs to all of humanity.''
+#    <^Pudge> i want to line people up.
+#    <^Pudge> i want them to bend over.
+#    <^Pudge> and i want to kick their asses and get points and medals for it.
+
+
 # Just $self->user plus '@' plus $self->host, for convenience.
 sub userhost {
     my $self = shift;

@@ -12,7 +12,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: Connection.pm,v 1.1.1.1 1999/03/02 00:29:17 corbeau Exp $
+# $Id: Connection.pm,v 1.2 1999/04/08 16:14:54 corbeau Exp $
 
 
 package Net::IRC::Connection;
@@ -20,6 +20,7 @@ package Net::IRC::Connection;
 use Net::IRC::Event;
 use Net::IRC::DCC;
 use Socket;
+use Symbol;
 use Carp;
 use strict;               # A little anal-retention never hurt...
 use vars (                # with a few exceptions...
@@ -179,12 +180,13 @@ EOSub
 #   (nick, username, ircname). Will close current connection if already open.
 sub connect {
     my $self = shift;
-    my ($hostname);
+    my ($hostname, $password, $sock);
 
     if (@_) {
 	my (%arg) = @_;
 
 	$hostname = $arg{'LocalAddr'} if exists $arg{'LocalAddr'};
+	$password = $arg{'Password'} if exists $arg{'Password'};
 	$self->nick($arg{'Nick'}) if exists $arg{'Nick'};
 	$self->port($arg{'Port'}) if exists $arg{'Port'};
 	$self->server($arg{'Server'}) if exists $arg{'Server'};
@@ -224,8 +226,9 @@ sub connect {
 #				     PeerPort => $self->port,
 #				     Proto    => "tcp",
 #				    );
-    
-    unless (socket( SOCK, PF_INET, SOCK_STREAM, getprotobyname('tcp') )) {
+
+    $sock = Symbol::gensym();
+    unless (socket( $sock, PF_INET, SOCK_STREAM, getprotobyname('tcp') )) {
         carp ("Can't create a new socket: $!");
 	$self->error(1);
 	return;
@@ -237,15 +240,15 @@ sub connect {
     # get in the way of the functionality...
 
     if ($hostname) {
-	unless (bind( SOCK, sockaddr_in( 0, inet_aton($hostname) ) )) {
+	unless (bind( $sock, sockaddr_in( 0, inet_aton($hostname) ) )) {
 	    carp "Can't bind to $hostname: $!";
 	    $self->error(1);
 	    return;
 	}
     }
     
-    if (connect( SOCK, sockaddr_in($self->port, inet_aton($self->server)) )) {
-	$self->socket(\*SOCK);
+    if (connect( $sock, sockaddr_in($self->port, inet_aton($self->server)) )) {
+	$self->socket($sock);
 	
     } else {
 	carp (sprintf "Can't connect to %s:%s!",
@@ -254,6 +257,12 @@ sub connect {
 	return;
     }
     
+    # Send a PASS command if they specified a password. According to
+    # the RFC, we should do this as soon as we connect.
+    if (defined $password) {
+	$self->sl("PASS $password");
+    }
+
     # Now, log in to the server...
     unless ($self->sl('NICK ' . $self->nick()) and
 	    $self->sl(sprintf("USER %s %s %s :%s",
@@ -545,6 +554,14 @@ sub ignore {
     }
 }
 
+
+# -- #perl was here! --
+# <Moonlord> someone can tell me some web side for "hack" programs
+#  <fimmtiu> Moonlord: http://pinky.wtower.com/nethack/
+# <Moonlord> thank`s fimmtiu
+#    fimmtiu giggles maniacally.
+
+
 # Yet Another Ridiculously Simple Sub. Sends an INFO command.
 # Takes 1 optional arg: the name of the server to query.
 sub info {
@@ -747,6 +764,13 @@ sub mode {
     }
     $self->sl("MODE $_[0] $_[1] " . CORE::join(" ", @_[2..$#_]));
 }
+
+# -- #perl was here! --
+# *** billnolio (billn@initiate.monk.org) has joined channel #perl
+# *** Mode change "+v billnolio" on channel #perl by select
+#     billnolio humps fimmtiu's leg
+# *** billnolio has left channel #perl
+
 
 # Sends a MOTD command to a server.
 # Takes 1 optional arg:  the server to query (defaults to current server)
@@ -1431,6 +1455,33 @@ sub schedule {
     $time = time + int $time;
     $self->parent->queue($time, $code, $self, @_);
 }
+
+
+# -- #perl was here! --
+# <freeside> YOU V3GAN FIEND, J00 W1LL P4Y D3ARLY F0R TH1S TRESPASS!!!!!!!!!!!
+# <Netslave> be quiet freeside
+# <freeside> WE W1LL F0RCE PR0K DOWN YOUR V1RG1N THR0AT
+# <freeside> MAKE ME
+# <freeside> :-PPPPPPPPP
+# <freeside> FORCE IS THE LAST REFUGE OF THE WEAK
+# <freeside> I DIE, OH, HORATIO, I DIE!
+#    Che_Fox hugs freeside
+#  <initium> freeside (=
+#  <Che_Fox> I lurve you all :)
+#   freeside lashes himself to the M4ST.
+# <Netslave> freeside, why do you eat meat?
+# <freeside> 4NARCHY R00000LZ!!!!!  F1GHT TH3 P0W3R!!!!!!
+# <freeside> I 3AT M3AT S0 TH4T J00 D0N'T H4V3 TO!!!!!!!!!!!!
+# <freeside> I 3AT M3AT F0R J00000R SINS, NETSLAVE!!!!!!!!!!
+# <freeside> W0RSH1P M3333333!!!!!!!
+# *** t0fu (wasian@pm3l-12.pacificnet.net) joined #perl.
+#    Che_Fox giggles
+# *** t0fu (wasian@pm3l-12.pacificnet.net) left #perl.
+# <freeside> T0FU, MY SAV10UIRRRRRRRRRRRRR
+# <freeside> NOOOOOOOOOOOOOO
+# <freeside> COME BAAAAAAAAAACK
+#  <Che_Fox> no t0fu for you.
+
 
 # Lets J. Random IRCop connect one IRC server to another. How uninteresting.
 # Takes at least 1 arg:  the name of the server to connect your server with

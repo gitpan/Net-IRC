@@ -11,7 +11,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id$
+# $Id: DCC.pm,v 1.2 1999/04/08 16:14:56 corbeau Exp $
 
 package Net::IRC::DCC;
 

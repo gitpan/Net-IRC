@@ -11,7 +11,7 @@
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id$
+# $Id: IRC.pm,v 1.2 1999/04/08 16:14:59 corbeau Exp $
 
 
 package Net::IRC;
@@ -24,7 +24,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.57";
+$VERSION = "0.58";
 
 
 
@@ -483,6 +483,14 @@ A short (maybe 60 or so chars) piece of text, originally intended to display
 your real name, which people often use for pithy quotes and URLs. Defaults to
 the contents of your GECOS field.
 
+=item *
+
+Password
+
+If the IRC server you're trying to write a bot for is
+password-protected, no problem. Just say "C<Password => 'foo'>" and
+you're set.
+    
 =back
 
 =head2 Handlers

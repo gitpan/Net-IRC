@@ -23,6 +23,14 @@ WriteMakefile(
 		  'Event.pm'      => '$(INST_LIBDIR)/IRC/Event.pm',
 		  'DCC.pm'        => '$(INST_LIBDIR)/IRC/DCC.pm',
 	      },
+              'PREREQ_PM' => {
+                  'IO::Select'    => 0,
+                  'Carp'          => 0,
+                  'Socket'        => 0,
+                  'IO::File'      => 0,
+                  'IO::Socket'    => 0,
+                  'Sys::Hostname' => 0,
+              },
 	      'VERSION_FROM' => 'IRC.pm', # finds $VERSION
               'dist' => { 'COMPRESS' => 'gzip --best' },
 );

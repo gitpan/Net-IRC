@@ -302,5 +302,12 @@ Revision history for Perl extension Net::IRC.
 	  the relevant parts out of it, but I've included a couple notable parts
 	  from it already... especially all the new event numerics he added.
 	
+0.58   Thu Apr  8 11:00:58 CDT 1999
+	- Oh, dear. Many thanks to kleptog and Epesh for bringing to my
+	  attention a really simple, stupid bug which broke scripts using
+	  multiple connections. 0.57 was borked. Mea culpa.
+	- Added a "Password" parameter to the connect() method, for bots on
+	  restricted servers. Updated the docs to reflect this.
+
 
 
