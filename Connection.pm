@@ -5,30 +5,41 @@
 #   Connection.pm: The basic functions for a simple IRC connection  #
 #                                                                   #
 #                                                                   #
-#          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
+#    Copyright (c) 2001 Pete Sergeant, Greg Bacon & Dennis Taylor.  #
 #                       All rights reserved.                        #
 #                                                                   #
 #      This module is free software; you can redistribute or        #
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
-# $Id: Connection.pm,v 1.3 1999/08/12 21:07:02 corbeau Exp $
+#
+# Net-IRC 0.71
+# ------------
+# 
+# Pete Sergeant's Changelog
+# 
+# July 1st 2001:
+#	=> Removed old DEBUG information in &parse_ctcp that got left
+#		over and never cleaned up. My thanks to Joshua Swink,
+#		Glen and Mike for pointing this out.
+#	=> Allowed the bot to use the hostname you asked it to, and
+#		cleaned out two declared vars that didn't need to be.
+#		Thanks to Greg for spotting the hostname problem, and
+#		Abigail for providing an elegant solution
 
 
 package Net::IRC::Connection;
 
 use Net::IRC::Event;
 use Net::IRC::DCC;
-use Sys::Hostname;
+use Sys::Hostname ();
 use Socket;
 use Symbol;
 use Carp;
 use strict;               # A little anal-retention never hurt...
 use vars (                # with a few exceptions...
-	  '$AUTOLOAD',    #   - the name of the sub in &AUTOLOAD
-	  '%_udef',       #   - the hash containing the user's global handlers
-	  '%autoloaded',  #   - the hash containing names of &AUTOLOAD methods
-	 );
+	'$AUTOLOAD',    #   - the name of the sub in &AUTOLOAD
+);
 
 
 # The names of the methods to be handled by &AUTOLOAD.
@@ -1283,8 +1294,7 @@ sub parse_ctcp {
     while (($one, $two) = (splice @foo, 0, 2)) {
  
 	($one, $two) = ($two, $one) if $odd;
-	warn "ONE: \"$one\"   TWO: \"$two\"\n";
-
+	
 	my ($ctype) = $one =~ /^(\w+)\b/;
 	my $prefix = undef;
 	if ($type eq 'notice') {

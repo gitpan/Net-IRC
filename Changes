@@ -374,3 +374,11 @@ Revision history for Perl extension Net::IRC.
 	  Connection.pm -- you can now turn off ignores that you set with
 	  ignore(). Nifty!
 
+0.71   Mon Jul 02 00:00:00 GMT 2001
+	- Removed debugging information that was printing out weird messages
+	  as far as ACTIONs were concerned. Thanks to Joshua Swink, Glen and
+	  Mike.
+	- Made the LocalAddr option actually work, thanks to Abigail and
+	  Greg.
+	- Added some more Handlers, from Austnet, thanks to Andrew Macks
+	- Updated the documentation 

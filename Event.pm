@@ -4,13 +4,22 @@
 #                                                                   #
 #      Event.pm: The basic data type for any IRC occurrence.        #
 #                                                                   #
-#          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
+#    Copyright (c) 2001 Pete Sergeant, Greg Bacon & Dennis Taylor.  #
 #                       All rights reserved.                        #
 #                                                                   #
 #      This module is free software; you can redistribute or        #
 #      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
+#
+# Net-IRC 0.71
+# ------------
+# 
+# Pete Sergeant's Changelog
+# 
+# July 1st 2001:
+#	=> Added some extra numeric events from Austnet, thanks to
+#		Andrew Macks (andypoo).
 
 
 package Net::IRC::Event;
@@ -366,6 +375,7 @@ sub userhost {
 	   305 => "unaway",
 	   306 => "nowaway",
 	   307 => "userip",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   310 => "whoishelp",          # (July01-01)Austnet Extension, found by Andypoo <andypoo@secret.com.au>
 	   311 => "whoisuser",
 	   312 => "whoisserver",
 	   313 => "whoisoperator",
@@ -375,6 +385,7 @@ sub userhost {
 	   317 => "whoisidle",
 	   318 => "endofwhois",
 	   319 => "whoischannels",
+	   320 => "whoisvworld",        # (July01-01)Austnet Extension, found by Andypoo <andypoo@secret.com.au>
 	   321 => "liststart",
 	   322 => "list",
 	   323 => "listend",
@@ -406,6 +417,7 @@ sub userhost {
 	   375 => "motdstart",
 	   376 => "endofmotd",
 	   377 => "motd2",        # 1997-10-16 -- tkil
+	   378 => "austmotd",		# (July01-01)Austnet Extension, found by Andypoo <andypoo@secret.com.au>
 	   381 => "youreoper",
 	   382 => "rehashing",
 	   384 => "myportis",

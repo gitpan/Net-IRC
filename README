@@ -1,4 +1,4 @@
-Net::IRC 0.70 README         Dennis Taylor        Mon May 29 11:52:26 PDT 2000
+Net::IRC 0.71 README        Peter Sergeant        Mon Jul 02 00:00:00 GMT 2000
 ==============================================================================
 
 Table of Contents
@@ -8,6 +8,7 @@ Table of Contents
 2.  Availability
 3.  Prerequisites
 4.  Installation
++-  4.1  Windows Installation
 5.  Demonstration Script
 6.  Bugs
 7.  Disclaimer
@@ -26,7 +27,7 @@ several members of the EFnet IRC channel #perl.
 
     Please read the Changes file for details about recent updates, and the
 Bugs section of this document for notes about future improvements. This is
-the first version of Net::IRC to come with documentation... albeit incomplete
+the second version of Net::IRC to come with documentation... albeit incomplete
 and not terribly useful documentation, but we'll get it fleshed out soon
 enough, so bear with us.
 
@@ -72,7 +73,15 @@ Do this, in the following order:
 We don't have any automated tests yet, but they might be in the not-too-
 distant future. You may instead wish to play around with the...
 
+=> 4.1   Windows Installation
 
+    If you don't have a copy of 'make' on your machine, the easiest way to
+install this module is to unzip the file into a local directory, and
+copy the component files like this:
+	IRC.pm		=> path.to.perl/site/lib/Net/IRC.pm
+	Connection.pm	=> path.to.perl/site/lib/Net/IRC/Connection.pm
+	Event.pm	=> path.to.perl/site/lib/Net/IRC/Event.pm
+	DCC.pm		=> path.to.perl/site/lib/Net/IRC/DCC.pm
 
 5. Demonstration Script
 ------------------------
@@ -94,13 +103,19 @@ be careful.
 6. Bugs
 ------------------------
 
-    None.
+    Quite a few. Below are a list of the ones that have been identified
+and are being worked on:
+	-> Connecting fails mysteriously on some machines
+	-> DCC seems to be full of small bugs
+	-> Format system doesn't work
+	-> IPv6 hostnames aren't liked
+	-> Channels with a ':' in confuse the module
 
-    OK, so I'm full of it. Probably tons. In particular, the format system
-doesnt even pretend to work, DCC still doesn't fail very gracefully, and
-it may not be 100% compatible with Undernet and other non-EFnet servers.
-Expect fixes for these soon. Then expect us to find a whole new crop to write
-about in this space. Sigh.
+     Some improvements are also planned. If you in an idea that isn't 
+implemented and isn't here, please send it again to pete@clueball.com
+	-> PPM Version
+	-> Handling of unknow CTCP types
+
 
     Should you find one that we may have overlooked, PLEASE get in touch with
 one of the developers (see section 8, below).
@@ -133,18 +148,19 @@ Without further ado... *ahem* :
     modify it under the terms of the Perl Artistic License, distributed with
     this module.
 
+    Any changes after 0.70 are copyright Peter Sergeant, and/or the people
+    who submitted them.
 
 
 9. Developer Information
 ------------------------
 
-    The arduous and dreary task of maintaining and doing various stuff with
-Net::IRC is taken care of by a bunch of people on the EFnet IRC channel #perl
-who have way too much time on their hands. If you're interested in helping
-out, there's a mailing list for Net::IRC development; details can be found at
-http://netirc.betterbox.net/list.html.
+    Maintenance is now handled by Peter Sergeant <pete@clueball.com>. A
+homepage and mailing-list are soon to come, and will be able to be found
+at http://irc.clueball.com. If it's still July, they're probably not there
+yet. :)
 
-    Submit bug reports and problems to Dennis Taylor <dennis@funkplanet.com>.
+    Submit bug reports and problems to Peter Sergeant <pete@clueball.com>.
 If you're looking for technical support for a Net::IRC script, your best
 bet is to ask on EFNet #perl or the comp.lang.perl.misc newsgroup.
 Thanks!
