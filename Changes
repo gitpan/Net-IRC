@@ -387,3 +387,5 @@ Revision history for Perl extension Net::IRC.
         - Added a patch from Anti Veeranna in Connection.pm to fix the
           problems with IPv6 hostnames. Has not been tested with DCC.
 
+0.73   Wed Jan 02 13:00:00 GMT 2002
+        - Anti's Patch broke MODE handling. Implemented a quick fix.

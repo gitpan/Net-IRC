@@ -1123,13 +1123,13 @@ sub parse {
 
             # Patch submitted for v.0.72
             # Fixes problems with IPv6 hostnames.
-            # Was: ($from, $line= split ":", $line, 2;
-	    ($from, $line) = $line =~ /^(?:|)(\S+\s+[^:]+):(.*)/;
+            # ($from, $line) = split ":", $line, 2;
+	    ($from, $line) = $line =~ /^(?:|)(\S+\s+[^:]+):?(.*)/;
 
 	    ($from, $type, @stuff) = split /\s+/, $from;
 	    $type = lc $type;
-	    
 	    # This should be fairly intuitive... (cperl-mode sucks, though)
+
 	    if (defined $line and index($line, "\001") >= 0) {
 		$itype = "ctcp";
 		unless ($type eq "notice") {
@@ -1224,7 +1224,7 @@ sub parse {
 	# orwant: Howdy howdy.
 	# orwant: Just came back from my cartooning class.
 	# orwant: I'm working on a strip for TPJ.
-    #    njt: it's happy bouncy clown jon from clownland!  say 'hi' to
+        #    njt: it's happy bouncy clown jon from clownland!  say 'hi' to
 	#         the kiddies, jon!
 	#         orwant splits open njt like a wet bag of groceries and
 	#         dances on his sticky bones.

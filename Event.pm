@@ -36,7 +36,7 @@ my %_names;
 #           Paraphernalia page?
 #    <\mjd> People who are amused might want to come visit.
 # <fimmtiu> Sure, why not... what's the url?
-#    <\mjd> http://www.plover.com/~mjd/perl/
+#    <\mjd> http://perl.plover.com/
 
 
 # Sets or returns an argument list for this event.

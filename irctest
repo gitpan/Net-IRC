@@ -56,9 +56,9 @@ sub on_connect {
 	my $self = shift;
 	
 	print "Joining #IRC.pm...\n";
-	$self->join("#IRC.pm");
-	$self->privmsg("#IRC.pm", &pickrandom());
-	$self->topic("#IRC.pm");
+	$self->join("#net-irc2");
+	$self->privmsg("#net-irc2", &pickrandom());
+	$self->topic("#net-irc2");
 }
 
 # Handles some messages you get when you connect
@@ -140,6 +140,44 @@ sub on_public {
     }
 }
 
+sub on_umode {
+    my ($self, $event) = @_;
+    my @to = $event->to;
+    my ($nick, $mynick) = ($event->nick, $self->nick);
+    my ($arg) = ($event->args);
+
+    # Note that $event->to() returns a list (or arrayref, in scalar
+    # context) of the message's recipients, since there can easily be
+    # more than one.
+    
+    print "<$nick> $arg\n";
+    if ($arg =~ /$mynick/i) {                   # Say a Zippy quote if our nick
+	$self->privmsg([ @to ], &pickrandom()); # appears in the message.
+    }
+
+    if ($arg =~ /Go away/i) {       # Tell him to leave, and he does.
+	$self->quit("Yow!!");
+	exit 0;
+    }
+
+    if ($arg =~ /^chat/i) {         # Request a DCC Chat initiation
+	$self->new_chat(1, $event->nick, $event->host);
+    }
+
+    # You can invoke this next part with "Send me Filename" or
+    # "Send Filename to me". It doesn't much like ending punctuation, though.
+    
+    $arg =~ s/[^"'\w]*?\b(to|me)\b[^'"\w]*?//g;
+
+    if ($arg =~ /^send\s+(\S+)\s*/i) {
+	if (-e $1) {
+	    $self->privmsg($nick, "Sending $1 in 10 seconds...");
+	    $self->schedule(10, \&Net::IRC::Connection::new_send, $nick, $1);
+	} else {
+	    $self->privmsg($nick, "No such file as $1, sorry.");
+	}
+    }
+}
 # What to do when we receive a message via DCC CHAT.
 sub on_chat {
     my ($self, $event) = @_;
@@ -254,6 +292,7 @@ $conn->add_handler('chat',   \&on_chat);
 $conn->add_handler('public', \&on_public);
 $conn->add_handler('caction', \&on_action);
 $conn->add_handler('join',   \&on_join);
+$conn->add_handler('umode',   \&on_umode);
 $conn->add_handler('part',   \&on_part);
 $conn->add_handler('cdcc',   \&on_dcc);
 $conn->add_handler('topic',   \&on_topic);
