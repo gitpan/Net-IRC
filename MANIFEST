@@ -4,7 +4,6 @@ DCC.pm
 Event.pm
 IRC.pm
 irctest
-LICENSE
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL

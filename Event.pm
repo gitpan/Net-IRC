@@ -7,9 +7,8 @@
 #          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
 #                       All rights reserved.                        #
 #                                                                   #
-#      This module is free software; you can redistribute it        #
-#      and/or modify it under the terms of the Perl Artistic        #
-#             License, distributed with this module.                #
+#      This module is free software; you can redistribute or        #
+#      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
 
@@ -37,20 +36,20 @@ sub args {
     my $self = shift;
 
     if (@_) {
-	my (@q, $i) = @_;       # This line is solemnly dedicated to \mjd.
+		my (@q, $i) = @_;       # This line is solemnly dedicated to \mjd.
 
-	$self->{'args'} = [ ];
-	while (@q) {
-	    $i = shift @q;
-	    next unless defined $i;
-	    
-	    if ($i =~ /^:/) {                        # Concatenate :-args.
-		$i = join ' ', (substr($i, 1), @q);
-		push @{$self->{'args'}}, $i;
-		last;
-	    }
-	    push @{$self->{'args'}}, $i;
-	}
+		$self->{'args'} = [ ];
+		while (@q) {
+		    $i = shift @q;
+		    next unless defined $i;
+
+		    if ($i =~ /^:/) {                        # Concatenate :-args.
+				$i = join ' ', (substr($i, 1), @q);
+				push @{$self->{'args'}}, $i;
+				last;
+		    }
+		    push @{$self->{'args'}}, $i;
+		}
     }
 
     return @{$self->{'args'}};
@@ -66,7 +65,7 @@ sub dump {
     print STDERR "FROM: ", $self->{'from'}, "\n";
     print STDERR "TO: ", join(", ", @{$self->{'to'}}), "\n";
     foreach $arg (@{$self->{'args'}}) {
-	print "Arg ", $counter++, ": ", $arg, "\n";
+		print "Arg ", $counter++, ": ", $arg, "\n";
     }
 }
 
@@ -155,9 +154,9 @@ sub new {
     
     # Take your encapsulation and shove it!
     if ($self->{'type'} !~ /\D/) {
-	$self->{'type'} = $self->trans($self->{'type'});
+		$self->{'type'} = $self->trans($self->{'type'});
     } else {
-	$self->{'type'} = lc $self->{'type'};
+		$self->{'type'} = lc $self->{'type'};
     }
 
     #  ChipDude: "Beware the method call, my son!  The subs that grab, the
@@ -193,7 +192,7 @@ sub to {
     my $self = shift;
     
     $self->{'to'} = [ @_ ] if @_;
-    return @{$self->{'to'}};
+    return wantarray ? @{$self->{'to'}} : $self->{'to'};
 }
 
 # -- #perl was here! --
@@ -258,6 +257,8 @@ sub userhost {
     return $self->{'userhost'};
 }
 
+
+
 %_names = (
 	   # suck!  these aren't treated as strings --
 	   # 001 ne 1 for the purpose of hash keying, apparently.
@@ -265,7 +266,13 @@ sub userhost {
 	   '002' => "yourhost",
 	   '003' => "created",
 	   '004' => "myinfo",
-	   
+	   '005' => "map", 		# Undernet Extension, Kajetan@Hinner.com, 17/11/98
+	   '006' => "mapmore", 		# Undernet Extension, Kajetan@Hinner.com, 17/11/98
+	   '007' => "mapend", 		# Undernet Extension, Kajetan@Hinner.com, 17/11/98	   	   
+	   '008' => "snomask", 		# Undernet Extension, Kajetan@Hinner.com, 17/11/98	   
+	   '009' => "statmemtot", 	# Undernet Extension, Kajetan@Hinner.com, 17/11/98	   
+	   '010' => "statmem", 		# Undernet Extension, Kajetan@Hinner.com, 17/11/98	   
+
 	   200 => "tracelink",
 	   201 => "traceconnecting",
 	   202 => "tracehandshake",
@@ -294,6 +301,15 @@ sub userhost {
 	   242 => "statsuptime",
 	   243 => "statsoline",
 	   244 => "statshline",
+	   245 => "statssline",		# Reserved, Kajetan@Hinner.com, 17/10/98
+	   246 => "statstline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   247 => "statsgline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   248 => "statsuline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   249 => "statsdebug",		# Unspecific Extension, Kajetan@Hinner.com, 17/10/98
+	   250 => "statsconn",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   
+	  
+
 	   250 => "luserconns",   # 1998-03-15 -- tkil
 	   251 => "luserclient",
 	   252 => "luserop",
@@ -308,6 +324,12 @@ sub userhost {
 	   262 => "endoftrace",  # 1997-11-24 -- archon
 	   265 => "n_local",     # 1997-10-16 -- tkil
 	   266 => "n_global",    # 1997-10-16 -- tkil
+	   271 => "silelist",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   272 => "endofsilelist",	# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   275 => "statsdline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   280 => "glist",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   281 => "endofglist",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+
 	   
 	   300 => "none",
 	   301 => "away",
@@ -315,6 +337,7 @@ sub userhost {
 	   303 => "ison",
 	   305 => "unaway",
 	   306 => "nowaway",
+	   307 => "userip",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   311 => "whoisuser",
 	   312 => "whoisserver",
 	   313 => "whoisoperator",
@@ -332,11 +355,13 @@ sub userhost {
 	   331 => "notopic",
 	   332 => "topic",
 	   333 => "topicinfo",      # 1997-11-24 -- archon
+	   334 => "listusage",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   341 => "inviting",
 	   342 => "summoning",
 	   351 => "version",
 	   352 => "whoreply",
 	   353 => "namreply",
+	   354 => "whospcrpl",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   361 => "killdone",
 	   362 => "closing",
 	   363 => "closeend",
@@ -356,6 +381,7 @@ sub userhost {
 	   381 => "youreoper",
 	   382 => "rehashing",
 	   384 => "myportis",
+	   385 => "notoperanymore",	# Unspecific Extension, Kajetan@Hinner.com, 17/10/98
 	   391 => "time",
 	   392 => "usersstart",
 	   393 => "users",
@@ -374,14 +400,19 @@ sub userhost {
 	   412 => "notexttosend",
 	   413 => "notoplevel",
 	   414 => "wildtoplevel",
+	   416 => "querytoolong",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   421 => "unknowncommand",
 	   422 => "nomotd",
 	   423 => "noadmininfo",
 	   424 => "fileerror",
 	   431 => "nonicknamegiven",
-	   432 => "erroneusnickname", # Thiss iz how its speld in thee RFC.
+	   432 => "erroneusnickname",   # This iz how its speld in thee RFC.
 	   433 => "nicknameinuse",
 	   436 => "nickcollision",
+	   437 => "bannickchange",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   438 => "nicktoofast",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   439 => "targettoofast",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+
 	   441 => "usernotinchannel",
 	   442 => "notonchannel",
 	   443 => "useronchannel",
@@ -396,20 +427,27 @@ sub userhost {
 	   465 => "yourebannedcreep", # I love this one...
 	   466 => "youwillbebanned",
 	   467 => "keyset",
+	   468 => "invalidusername",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   471 => "channelisfull",
 	   472 => "unknownmode",
 	   473 => "inviteonlychan",
 	   474 => "bannedfromchan",
 	   475 => "badchannelkey",
 	   476 => "badchanmask",
+	   478 => "banlistfull",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   481 => "noprivileges",
 	   482 => "chanoprivsneeded",
 	   483 => "cantkillserver",
+	   484 => "ischanservice",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	   491 => "nooperhost",
 	   492 => "noservicehost",
 	   
 	   501 => "umodeunknownflag",
 	   502 => "usersdontmatch",
+
+	   511 => "silelistfull",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   513 => "nosuchgline",		# Undernet Extension, Kajetan@Hinner.com, 17/10/98
+	   513 => "badping",			# Undernet Extension, Kajetan@Hinner.com, 17/10/98
 	  );
 
 
@@ -561,8 +599,17 @@ an IRC operator has just booted your sorry arse offline. Seeya!
 
 disconnect
 
-The "disconnect" event is triggered when the client unexpectedly loses its
-connection to the IRC server it's talking to.
+The "disconnect" event is triggered when the client loses its
+connection to the IRC server it's talking to. Don't confuse it with
+the "leaving" event. (See below.)
+
+=item *
+
+leaving
+
+The "leaving" event is triggered just before the client deliberately
+closes a connection to an IRC server, in case you want to do anything
+special before you sign off.
 
 =item *
 

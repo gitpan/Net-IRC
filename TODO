@@ -6,8 +6,13 @@ Things to do for the next revision:
 	Closing Link: Natsune[i.got.net] by NewBrunswick.NJ.US.Undernet.Org
         (Excess Flood)
 
-  - Write more documentation, or at least the event list for Event.pm...
+  - Write more documentation.
 
-  - Fix Connection->quit() to not close the connection so quickly.
+  - Fix this case:
 
+	QIUT
+        QIUT :Unknown command
 
+  -  Test the server notice stuff. (both "NOTICE :foo" and ":server.com NOTICE :foo")
+
+  -  Add a password argument to the connect() method.

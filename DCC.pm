@@ -7,15 +7,16 @@
 #          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
 #                       All rights reserved.                        #
 #                                                                   #
-#      This module is free software; you can redistribute it        #
-#      and/or modify it under the terms of the Perl Artistic        #
-#             License, distributed with this module.                #
+#      This module is free software; you can redistribute or        #
+#      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
+# $Id$
 
 package Net::IRC::DCC;
 
 use strict;
+
 
 
 # --- #perl was here! ---
@@ -43,13 +44,13 @@ sub fixaddr {
 
     chomp $address;     # just in case, sigh.
     if ($address =~ /^\d+$/) {
-	return inet_ntoa(pack "N", $address);
+        return inet_ntoa(pack "N", $address);
     } elsif ($address =~ /^[12]?\d{1,2}\.[12]?\d{1,2}\.[12]?\d{1,2}\.[12]?\d{1,2}$/) {
-	return $address;
+        return $address;
     } elsif ($address =~ tr/a-zA-Z//) {                    # Whee! Obfuscation!
-	return inet_ntoa(((gethostbyname($address))[4])[0]);
+        return inet_ntoa(((gethostbyname($address))[4])[0]);
     } else {
-	return;
+        return;
     }
 }
 
@@ -69,6 +70,9 @@ sub time {
     return time - shift->{_time};
 }
 
+sub debug {
+    return shift->{_debug};
+}
 
 # Changes here 1998-04-01 by MJD
 # Optional third argument `$block'.
@@ -81,6 +85,10 @@ sub _getline {
     if (defined $sock->recv($input, 10240)) {
 	$frag .= $input;
 	if (length($frag) > 0) {
+	    
+            warn "Got ". length($frag) ." bytes from $sock\n"
+                if $self->{_debug};
+            
 	    if ($block) {          # Block mode (GET)
 		return $input;
 		
@@ -96,6 +104,10 @@ sub _getline {
 	    # um, if we can read, i say we should read more than 0
 	    # besides, recv isn't returning undef on closed
 	    # sockets.  getting rid of this connection...
+	    
+            warn "recv() received 0 bytes in _getline, closing connection.\n"
+                if $self->{_debug};
+            
 	    $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 							   $self->{_nick},
 							   $self->{_socket},
@@ -106,7 +118,11 @@ sub _getline {
 	}
     } else {
 	# Error, lets scrap this connection
-	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+	
+        warn "recv() returned undef, socket error in _getline()\n"
+            if i$self->{_debug};
+	
+        $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
 						       $self->{_socket},
 						       $self->{_type}));
@@ -118,9 +134,9 @@ sub _getline {
 
 sub DESTROY {
     my $self = shift;
-
-    # Only do the Disconnection Dance if the socket is still live.
-    # Duplicate dcc_close events would be a Bad Thing.
+    
+    # Only do the Disconnection Dance of Death if the socket is still
+    # live. Duplicate dcc_close events would be a Bad Thing.
     
     if ($self->{_socket}->opened) {
 	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
@@ -131,7 +147,7 @@ sub DESTROY {
 	close $self->{_fh} if $self->{_fh};
 	$self->{_parent}->{_parent}->parent->removeconn($self);
     }
-	
+    
 }
 
 sub peer {
@@ -157,7 +173,7 @@ use Carp;
 sub new {
 
     my ($class, $container, $nick, $address,
-	$port, $size, $filename, $handle) = @_;
+        $port, $size, $filename, $handle) = @_;
     my ($sock, $fh);
 
     # get the address into a dotted quad
@@ -199,6 +215,7 @@ sub new {
         _bin        =>  0,      # Bytes we've recieved thus far
         _bout       =>  0,      # Bytes we've sent
         _connected  =>  1,
+	_debug      =>  $container->debug,
         _fh         =>  $fh,    # FileHandle we will be writing to.
         _filename   =>  $filename,
 	_frag       =>  '',
@@ -256,25 +273,26 @@ sub parse {
     }
     
     $self->{_bout} += 4;
-    
+
+    # The file is done.
     # If we close the socket, the select loop gets screwy because
-    # it won't remove its reference to the socket.  weird.
-    if ( $self->{_size} and $self->{_size} <= $self->{_bin} ) {
-	close $self->{_fh};
-	$self->{_parent}->parent->removeconn($self);
-	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
-						       $self->{_nick},
-						       $self->{_socket},
-						       $self->{_type}));
-	return;
+    # it won't remove its reference to the socket.
+    if ( $self->{_size} and $self->{_size} >= $self->{_bin} ) {
+        close $self->{_fh};
+        $self->{_parent}->parent->removeconn($self);
+        $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+                                                       $self->{_nick},
+                                                       $self->{_socket},
+                                                       $self->{_type}));
+        return;
     }
     
     $self->{_parent}->handler(Net::IRC::Event->new('dcc_update',
-						   $self->{_nick},
-						   $self,
-						   $self->{_type},
-						   $self ));
-} 
+                                                   $self->{_nick},
+                                                   $self,
+                                                   $self->{_type},
+                                                   $self ));
+}
 
 # -- #perl was here! --
 #  \merlyn: I can't type... she created a numbner of very good drinks
@@ -338,6 +356,7 @@ sub new {
         _bin        =>  0,         # Bytes we've recieved thus far
         _blocksize  =>  $blocksize,       
         _bout       =>  0,         # Bytes we've sent
+	_debug      =>  $container->debug,
         _fh         =>  $fh,       # FileHandle we will be reading from.
         _filename   =>  $filename,
 	_frag       =>  '',
@@ -375,7 +394,7 @@ sub new {
 
 sub parse {
     my ($self, $sock) = @_;
-    my $size = ($self->_getline($sock))[0];
+    my $size = ($self->_getline($sock, 1))[0];
     my $buf;
 
     # i don't know how useful this is, but let's stay consistent
@@ -384,7 +403,7 @@ sub parse {
     unless (defined $size) {
 	# Dang! The other end unexpectedly canceled.
         carp (($self->peer)[1] . " connection to " .
-	      ($self->peer)[0] . " lost.");
+	      ($self->peer)[0] . " lost");
 	$self->{_fh}->close;
 	$self->{_parent}->parent->removefh($sock);
         $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
@@ -396,7 +415,12 @@ sub parse {
     
     $size = unpack("N", $size);
     
-    if ($size == $self->{_size}) {
+    if ($size >= $self->{_size}) {
+
+	if ($self->{_debug}) {
+	    warn "Other end acknowledged entire file ($size >= ",
+		$self->{_size}, ")";
+	}
         # they've acknowledged the whole file,  we outtie
         $self->{_fh}->close;
         $self->{_parent}->parent->removeconn($self);
@@ -412,7 +436,11 @@ sub parse {
     return if $size < $self->{_bout};
 
     unless (defined $self->{_fh}->read($buf,$self->{_blocksize})) {
-        $self->{_fh}->close;
+
+	if ($self->{_debug}) {
+	    warn "Failed to read from source file in DCC SEND!";
+	}
+	$self->{_fh}->close;
         $self->{_parent}->parent->removeconn($self);
 	$self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
 						       $self->{_nick},
@@ -422,6 +450,10 @@ sub parse {
     }
 
     unless($self->{_socket}->send($buf)) {
+
+	if ($self->{_debug}) {
+	    warn "send() failed horribly in DCC SEND"
+	}
         $self->{_fh}->close;
         $self->{_parent}->parent->removeconn($self);
         $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
@@ -486,6 +518,7 @@ sub new {
 	    _bin        =>  0,      # Bytes we've recieved thus far
 	    _bout       =>  0,      # Bytes we've sent
 	    _connected  =>  1,
+	    _debug      =>  $container->debug,
 	    _frag       =>  '',
 	    _nick       =>  $nick,  # Nick of the client on the other end
 	    _parent     =>  $container,
@@ -578,6 +611,21 @@ sub parse {
     }
 }
 
+# Sends a message to a channel or person.
+# Takes 2 args:  the target of the message (channel or nick)
+#                the text of the message to send
+sub privmsg {
+    my ($self) = shift;
+
+    unless (@_) {
+	croak 'Not enough arguments to privmsg()';
+    }
+    
+    # Don't send a CR over DCC CHAT -- it's not wanted.
+    $self->socket->send(join('', @_) . "\012");
+}
+
+
 # -- #perl was here! --
 #  \merlyn: this girl carly at the bar is aBABE
 #   archon: are you sure? you don't sound like you're in a condition to
@@ -593,22 +641,26 @@ package Net::IRC::DCC::Accept;
 
 @Net::IRC::DCC::Accept::ISA = qw(Net::IRC::DCC::Connection);
 use Carp;
+use Socket;   # we use a lot of Socket functions in parse()
+
 
 sub new {
     my ($class, $sock, $parent) = @_;
     my ($self);
 
-    $self = {
-	     _nonblock =>  1,
-	     _socket   =>  $sock,
-	     _parent   =>  $parent,
-	     _type     =>  'accept',
-            };
+    $self = { _debug    =>  $parent->debug,
+	      _nonblock =>  1,
+	      _socket   =>  $sock,
+	      _parent   =>  $parent,
+	      _type     =>  'accept',
+	  };
     
     bless $self, $class;
 
     # Tkil's gonna love this one. :-)   But what the hell... it's safe to
     # assume that the only thing initiating DCCs will be Connections, right?
+    # Boy, we're not built for extensibility, I guess. Someday, I'll clean
+    # all of the things like this up.
     $self->{_parent}->{_parent}->parent->addconn($self);
     return $self;
 }
@@ -616,11 +668,11 @@ sub new {
 sub parse {
     my ($self) = shift;
     my ($sock);
-    
+
     $sock = $self->{_socket}->accept;
     $self->{_parent}->{_socket} = $sock;
     $self->{_parent}->{_time} = time;
-    
+
     if ($self->{_parent}->{_type} eq 'SEND') {
 	# ok, to get the ball rolling, we send them the first packet.
 	my $buf;

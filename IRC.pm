@@ -7,23 +7,31 @@
 #          Copyright (c) 1997 Greg Bacon & Dennis Taylor.           #
 #                       All rights reserved.                        #
 #                                                                   #
-#      This module is free software; you can redistribute it        #
-#      and/or modify it under the terms of the Perl Artistic        #
-#             License, distributed with this module.                #
+#      This module is free software; you can redistribute or        #
+#      modify it under the terms of Perl's Artistic License.        #
 #                                                                   #
 #####################################################################
+# $Id$
 
 
 package Net::IRC;
 
-use 5.004;             # needs IO::* and $coderef->(@args) syntax 
+BEGIN { require 5.004; }    # needs IO::* and $coderef->(@args) syntax 
+
 use Net::IRC::Connection;
 use IO::Select;
 use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.54";
+$VERSION = "0.57";
+
+
+
+
+# -- #perl was here --
+# <Addi> purl, karma c?
+# <purl> c has karma of 666
 
 
 #####################################################################
@@ -74,9 +82,22 @@ sub addfh {
     } else {
 	$self->{_read}->add( $fh );
     }
-
+    
     $self->{_connhash}->{$fh} = [ $code, $obj ];
 }
+
+
+# Sets or returns the debugging flag for this object.
+# Takes 1 optional arg: a new boolean value for the flag.
+sub debug {
+    my $self = shift;
+
+    if (@_) {
+	$self->{_debug} = $_[0];
+    }
+    return $self->{_debug};
+}
+
 
 # Goes through one iteration of the main event loop. Useful for integrating
 # other event-based systems (Tk, etc.) with Net::IRC.
@@ -111,7 +132,7 @@ sub do_one_loop {
 
     if ($nexttimer) {
 	$timeout = $nexttimer - $time < $self->{_timeout}
-	           ? $nexttimer - $time : $self->{_timeout};
+	? $nexttimer - $time : $self->{_timeout};
     } else {
 	$timeout = $self->{_timeout};
     }
@@ -121,7 +142,11 @@ sub do_one_loop {
 				    $timeout)) {
 	foreach $sock (@{$ev}) {
 	    my $conn = $self->{_connhash}->{$sock};
-
+	    
+	    # $conn->[0] is a code reference to a handler sub.
+	    # $conn->[1] is optionally an object which the
+	    #    handler sub may be a method of.
+	    
 	    $conn->[0]->($conn->[1] ? ($conn->[1], $sock) : $sock);
 	}
     }
@@ -142,6 +167,7 @@ sub new {
 	        '_conn'     => [],
 		'_connhash' => {},
 		'_error'    => IO::Select->new(),
+		'_debug'    => 0,
 		'_queue'    => {},
 		'_qid'      => 'a',
 		'_read'     => IO::Select->new(),
@@ -166,10 +192,38 @@ sub newconn {
     my $conn = Net::IRC::Connection->new($self, @_);
     
     return if $conn->error;
-
-    $self->addconn($conn);
     return $conn;
 }
+
+
+# -- #perl was here! --
+# <_thoth> occurrence
+# <_thoth> Ranking right up there with "separate", the word "occur" and
+#          its compounds are amongst the most commonly misspelled words
+#          in the whole English language.
+# <_thoth> First of all, "occur" in English derives from a Latin verb
+#          (occurrere) whose conjugation happens to be something other
+#          than the 1st (-are verbs), and 1st conjugation verbs are the
+#          *ONLY* Latin ones that go to -ance and -able compounds in English.
+#          (German ones also go to the -a- forms.).
+# <_thoth> Thus, it must form compounds with -ence and -ible.  If you can't
+#          remember any Latin, it's simple to think of what it would be in
+#          any modern Latin dialect, like Spanish, French, Italian, or
+#          Portuguese.  In all cases, you have a verb ending in /[ei]re?$/,
+#          (in fact, /^occ?o?urr?[ei]re?$/ describes them all), which clues
+#          you in that it's not first conjugation at all.  That means -ance
+#          is dead wrong.
+# nvp mutters something.  could it be: "holy fuck, thoth"
+# <_thoth> Secondly, English verbs stressed on the last syllable using "short"
+#          vowels in English (like infer, beget, forget, and incur) always
+#          double their final consonant when adding suffixes, thus providing
+#          us with infeRRing and infeRRIBLE, begeTTing and begaTTer,
+#          forgeTTing and forgeTTABLE, and incuRRed, incuRRing, and
+#          incuRRENCE. Thus it must be occuRRed, occuRRing, and occuRRENCE.
+# <_thoth> Except that sometimes this is wrong.
+# <_thoth> TorgoX has a paper on it.
+
+
 
 # Returns a list of listrefs to event scheduled to be run.
 # Takes the args passed to it by Connection->schedule()... see it for details.
@@ -177,13 +231,24 @@ sub queue {
     my $self = shift;
 
     if (@_) {
-	$self->{_qid} = 'a' if $self->{_qid} eq 'zzzzzzzz';
-	$self->{_queue}->{$self->{_qid}++} = [ @_ ];
+        $self->{_qid} = 'a' if $self->{_qid} eq 'zzzzzzzz';
+        my $id = $self->{_qid};
+        $self->{_queue}->{$self->{_qid}++} = [ @_ ];
+        return ($id);
 
     } else {
-	return keys %{$self->{_queue}};
+        return keys %{$self->{_queue}};
     }
 }
+
+
+# Takes a scheduled event ID to remove from the queue.
+# Returns the deleted coderef, if you actually care.
+sub dequeue {
+    my ($self, $id) = @_;
+    delete $self->{_queue}->{$id}
+}
+
 
 # -- #perl was here! --
 #   <Tkil> chaos_ -- oh... and if you're a beginner... don't worry overmuch
@@ -317,8 +382,8 @@ sense later, we promise.
 =back
 
 The central concept that Net::IRC is built around is that of handlers
-(or hooks, or callbacks, or whatever the heck you wanna call them). We
-tried to make it a completely event-driven model, a la Tk -- for every
+(or hooks, or callbacks, or whatever the heck you feel like calling them).
+We tried to make it a completely event-driven model, a la Tk -- for every
 conceivable type of event that your client might see on IRC, you can give
 your program a custom subroutine to call. But wait, there's more! There are
 3 levels of handler precedence:
@@ -482,7 +547,7 @@ If you're tying Net::IRC into another event-based module, such as perl/Tk,
 there's a nifty C<do_one_loop()> method provided for your convenience. Calling
 C<$irc-E<gt>do_one_loop()> runs through the IRC.pm event loop once, hands
 all ready filehandles over to the appropriate handler subs, then returns
-control to your program. (Analogous to Tk's C<do_one_loop()>.)
+control to your program.
 
 =head1 METHOD DESCRIPTIONS
 

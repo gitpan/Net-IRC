@@ -71,8 +71,7 @@ Revision history for Perl extension Net::IRC.
 	- Removed ^A-removing stuff in DCC.pm (it's been fixed in Connection).
 	- Completely rewrote the irctest script, with more additions planned.
 	- The numeric event stuff has been farmed off from parse() to a
-	  separate routine, parse_num(). This part is going to present a big
-	  problem in weeks ahead... Jarkko Oikarinen should be shot.
+	  separate routine, parse_num().
 	- Default block size for DCC SEND now 1k instead of 8k.
 	- DCC SEND and GET now always do binary transfers. If a problem comes
 	  up with this, blame it on tchrist and BeeF. :-)
@@ -113,7 +112,7 @@ Revision history for Perl extension Net::IRC.
 	- Added motd, users, whowas, ison, lusers, userhost and wallops subs
 	  to Connection.pm.
 	- Added event scheduler to IRC.pm and Connection.pm. Good idea, Che!
-	- &AUTOLOAD in Connection.pm completely rewritten.
+	- &AUTOLOAD in Connection.pm completely rewritten by gbacon.
 	- Applied a nifty patch that breaks big messages to privmsg() and
 	  notice() into smaller chunks and sends them piecemeal.
 	- irctest now does DCC SEND via public message, as a demonstration.
@@ -236,6 +235,72 @@ Revision history for Perl extension Net::IRC.
 	- Minor doc fixes all over and cosmetic changes to irctest.
 	- List of events added to Event.pm documentation (finally!).
 	- The add_*handler functions will accept upper, lower, or mixed-case
-	  event names in the same fashion now.
+	  event names indiscriminately now.
+
+
+0.56b  Tue Dec 29 13:37:01 CST 1998
+	- The Makefile.PL was edited slightly for compatibility with nmake.
+	  Thanks to Duncan Harris for the bug report on this one.
+	- DCC CHAT objects can now send messages by calling the new privmsg()
+	  method... $chat->privmsg('string to send...'); . Useful, no?
+	- The indefatigable oznoid spent a good deal of his hard-earned
+	  time chasing down a pernicious connection bug. Way to go!
+	- Fixed, at long last, the "Read error" bugs in Connection->quit().
+	- Repaired some manifest idiocy in irctest. (Whoops. Thanks, Stupid_!)
+	- Fixed the new CORE::join warnings that crop up under 5.005. Grrrrr.
+	- Some debugging code added. Set DEBUG to 1 at the top of IRC.pm to
+	  enable verbose spewage of the module's actions. Still needs fleshing
+	  out, and needs some more debugging code in DCC.pm too.
+	- Net::IRC now dies by default when there are no open connections
+	  left. (Install a 'disconnect' handler to avoid this.)  This keeps it
+	  from ending up in a tight select loop over no sockets, which chews
+	  up CPU like mad.
+	- Fixed a parse problem where the handler for numeric events would
+	  grab non-numeric server messages, like "ERROR :Closing Link". Heh.
+	- Added disconnect() method to Connection.pm, to ensure that
+	  connections die properly BEFORE we call disconnect handlers. This
+	  approach is much cleaner... and less buggy.
+	- The handler which gets executed just before the quit() method
+	  issues a QUIT command (for saying things before you leave, etc.)
+	  is now known as "leaving", not "disconnect". This is a USER-VISIBLE
+	  CHANGE which may break some of existing code. BE WARNED.
+	- addconn() is now only called from Connection->connect(), and
+	  removeconn only from Connection->disconnect(). This is a good thing.
+	- DCC GET almost works. I accidentally reversed a test in some
+	  previous version and totally borked it so that it would die after
+	  one packet. Don't I feel like a total doofus... now, for those
+	  regression tests...
+	- Added a topic handler to irctest on a lark. I get more questions
+	  about topic reading/setting than about anything else...
+	- Added a "LocalAddr" atribute for Connection->connect(). Setting it
+	  to a valid hostname for your machine will cause you to connect with
+	  that hostname, instead of whatever default one your DNS will return.
+	  (Note: Some paranoid IRC servers don't like this.)
+
+0.57   Mon Mar  1 19:50:03 CST 1999
+	- Thanks to Gantoris for pointing out a bug in Event->to(). Now, when
+	  called in scalar context, it will return an array reference instead
+	  of the number of recipients.
+	- fubar@ameritech.net pointed out another motd numeric code which isn't
+	  in the (woefully outdated) RFC. If you've ever found yourself never
+	  receiving the MOTDs, this version's for you.
+	- Many thanks to Moses Moore, who offered some much-needed changes to
+	  Connection->privmsg(). Now the first argument can be an arrayref of
+	  recipient names, to specify a single message to be sent to multiple
+	  nicks/channels.
+	- Doru Petrescu <pdoru@kappa.ro> is not just the man. Nor, in fact, is
+	  he The Man. THIS is a person who can only be described as THE MAN
+	  HIMSELF, and I bow before his studly debugging skills. He sent me a
+          two-character fix today that seems to solve all the DCC problems I was
+	  having. Boy, do I feel dumb. Thanks, Doru!
+	- Everything's been checked into CVS, so I can have more detailed change
+	  logging. Hopefully, this will help avoid future rebreakings of DCC.
+	- Harald Kreuzer tipped me off to a bug in irctest's on_topic handler
+	  subroutine which really should have been caught in testing. Sorry
+	  about that... and thanks, Harald!
+	- Kajetan Hinner sent me a monster patch against 0.54. I'm still picking
+	  the relevant parts out of it, but I've included a couple notable parts
+	  from it already... especially all the new event numerics he added.
+	
 
 

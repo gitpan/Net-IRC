@@ -3,28 +3,13 @@ use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
-if ($] < 5) {
-    my $years = (localtime)[5] - 91;
-    print <<"ARGH";
-               *** REALLY BIG FAT FATAL ERROR ***
-
-    Hate to bring this up, but you're trying to run Net::IRC
-    on a version of Perl that's over $years years old. Are you
-    kidding? Come on, upgrade already... Net::IRC won't even
-    consider running on this hoary old version.
-
-ARGH
-
-    exit 1;
-}
-
 unless ($] >= 5.004) {
     print <<"ZOT";
                *** REALLY BIG FAT FATAL ERROR ***
 
     Net::IRC requires Perl version 5.004 or higher. Please complain
     to your system administrator until sie installs it. Sorry...
-  
+
 ZOT
 
     exit 1;
@@ -33,10 +18,10 @@ ZOT
 WriteMakefile(
 	      'NAME'  => 'Net::IRC',
 	      'PM'    =>  {
-		  'IRC.pm'        => '${INST_LIBDIR}/IRC.pm',
-		  'Connection.pm' => '${INST_LIBDIR}/IRC/Connection.pm',
-		  'Event.pm'      => '${INST_LIBDIR}/IRC/Event.pm',
-		  'DCC.pm'        => '${INST_LIBDIR}/IRC/DCC.pm',
+		  'IRC.pm'        => '$(INST_LIBDIR)/IRC.pm',
+		  'Connection.pm' => '$(INST_LIBDIR)/IRC/Connection.pm',
+		  'Event.pm'      => '$(INST_LIBDIR)/IRC/Event.pm',
+		  'DCC.pm'        => '$(INST_LIBDIR)/IRC/DCC.pm',
 	      },
 	      'VERSION_FROM' => 'IRC.pm', # finds $VERSION
               'dist' => { 'COMPRESS' => 'gzip --best' },

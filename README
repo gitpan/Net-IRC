@@ -1,4 +1,4 @@
-Net::IRC 0.54    README       Dennis Taylor       Sun Jun 28 18:49:03 CDT 1998
+Net::IRC 0.57    README       Dennis Taylor       Mon Mar  1 19:50:03 CST 1999
 ==============================================================================
 
 Table of Contents
@@ -81,7 +81,7 @@ Do this, in the following order:
         make
         make install
 
-We don't have any automated tests yet, but they're probably in the not-too-
+We don't have any automated tests yet, but they might be in the not-too-
 distant future. You may instead wish to play around with the...
 
 
@@ -109,7 +109,7 @@ be careful.
     None.
 
     OK, so I'm full of it. Probably tons. In particular, the format system
-doesnt even pretend to work, QUIT doesn't quite close the socket right, and
+doesnt even pretend to work, DCC still doesn't fail very gracefully, and
 it may not be 100% compatible with Undernet and other non-EFnet servers.
 Expect fixes for these soon. Then expect us to find a whole new crop to write
 about in this space. Sigh.
