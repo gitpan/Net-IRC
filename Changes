@@ -341,3 +341,11 @@ Revision history for Perl extension Net::IRC.
 	  ass. :-)  Added a $dcc->nick accessor method, too, as per his excellent
 	  suggestion.
 
+0.62   Wed Sep 22 18:13:28 EDT 1999
+	- Vadim Belman spotted two bugs in DCC.pm: one, a mistyping of
+	  'socket' as 'sock'; the other, a thoroughly inappropriate use of
+	  IO::Socket's LocalPort attribute. Both fixed, as per his patch.
+	- Jeremy Muhlich reminded me of a stupid change I made to the
+	  select loop several revisions ago which broke the proper behavior
+	  of schedule()ed events. Sigh.
+

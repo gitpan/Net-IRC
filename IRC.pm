@@ -24,7 +24,7 @@ use Carp;
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.61";
+$VERSION = "0.62";
 
 
 
@@ -171,7 +171,7 @@ sub new {
 		'_queue'    => {},
 		'_qid'      => 'a',
 		'_read'     => IO::Select->new(),
-		'_timeout'  => undef,
+		'_timeout'  => 1,
 		'_write'    => IO::Select->new(),
 	    };
 

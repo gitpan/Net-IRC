@@ -349,7 +349,6 @@ sub new {
     $fh->seek(0, SEEK_SET);
 
     $sock = new IO::Socket::INET( Proto     => "tcp",
-				  LocalPort => &Socket::INADDR_ANY(),
                                   Listen    => 1);
 
     unless (defined $sock) {
@@ -518,7 +517,6 @@ sub new {
         # we're initiating
 
         $sock = new IO::Socket::INET( Proto     => "tcp",
-				      LocalPort => &Socket::INADDR_ANY(),
                                       Listen    => 1);
 	
         unless (defined $sock) {
@@ -717,10 +715,10 @@ sub parse {
     $self->{_parent}->{_parent}->handler(Net::IRC::Event->
 					 new('dcc_open',
 					     $self->{_parent}->{_nick},
-					     $self->{_parent}->{_sock},
+					     $self->{_parent}->{_socket},
 					     $self->{_parent}->{_type},
 					     $self->{_parent}->{_type},
-					     $self->{_parent}->{_sock})
+					     $self->{_parent}->{_socket})
 					 );
 }
 
