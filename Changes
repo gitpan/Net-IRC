@@ -324,3 +324,13 @@ Revision history for Perl extension Net::IRC.
 	  works again. h3o++ !
 	- Fixed a bogosity in Connection->mode(). Don't ask.
 
+0.60   Thu Aug 12 16:19:58 EDT 1999
+	- Fixed a stupid oversight in the Net::IRC::DCC::SEND::new() method which
+	  prevented one from sending files in directories outside of the current
+	  directory. Thanks to Frank Tobin for spotting this; sorry it took me so
+	  long to fix, but your email got lost in the noise for a couple weeks...
+	- Jan L. Peterson sent me a nifty patch which fixes the infamous colon-
+	  stripping bug in Event->args(). Sorry it took me so long to fix this
+	  one, everybody. Unlike the previous bug, this one has no excuse.
+	- Thanks to Jack Velte for pointing out the cause of some spurious
+	  "uninitialized value" warnings in Connection.pm.

@@ -1318,8 +1318,10 @@ sub parse_num {
     my ($blip, $space, $other, @stuff);
     while ($stuff) {
 	($blip, $space, $other) = split(/(\s+)/, $stuff, 2);
+	$space = "" unless $space;
+	$other = "" unless $other;    # I hate warnings. Thanks to jack velte...
 	if ($blip =~ /^:/) {
-		push @stuff, $blip . $space . $other; 
+		push @stuff, $blip . $space . $other;
 		last;
 	} else {
 	    push @stuff, $blip;
@@ -1351,13 +1353,6 @@ sub part {
     }
     $self->sl("PART " . CORE::join(",", @_));    # "A must!"
 }
-
-# -- #perl was here! --
-# <^Pudge> and then tell dick hardt and his lawyers to come talk to me.
-# <fimmtiu> If I concentrate hard enough, I can make Dick Hardt's head explode.
-# <^Pudge> fimm, you kick ass.
-#  <Alias> karma activestate
-#   <purl> Activestate's karma is WAY down there at the moment.
 
 
 # Tells what's on the other end of a connection. Returns a 2-element list
@@ -1648,6 +1643,19 @@ sub stats {
     $self->sl("STATS $_[0]" . ($_[1] ? " $_[1]" : ""));
 }
 
+# -- #perl was here! --
+# <Schwern> Wheat grass juice is properly served in a NyQuil sized cup, in
+#           a NyQuil sized color with a NyQuil sized flavor.
+#  <mendel> how big is nyquil's color
+#  <foobah> often wheat grass is served mixed in with other fruit juices
+#  <Sauvin> nyquil++
+# <Schwern> mendel:  As BIG AS THE FUCKIN' Q!
+# <yuckf00> this big <---------------------------------->
+#  <foobah> since by itself it can burn holes in your esophagus
+
+    
+
+
 # If anyone still has SUMMON enabled, this will implement it for you.
 # If not, well...heh.  Sorry.  First arg mandatory: user to summon.  
 # Second arg optional: a server name.
@@ -1759,6 +1767,16 @@ sub version {
     $self->sl("VERSION" . ($_[0] ? " $_[0]" : ""));
 }
 
+
+# -- #perl was here! --
+#    <vald> Does anyone know how to modify a perl server that accepts
+#           telnet to make it accept emails ?
+#  <TorgoX> vald -- do you know how to modify a car so that it has six
+#           legs, spins webs, and eats flies?
+# <Schwern> Does a "perl server" serve perl?
+#  <clintp> We all serve Perl.  Some days, it serves us.
+
+
 # Sends a message to all opers on the network. Hypothetically.
 # Takes 1 arg:  the text to send.
 sub wallops {
@@ -1797,6 +1815,14 @@ sub whois {
     }
     return $self->sl("WHOIS " . CORE::join(",", @_));
 }
+
+# -- #perl was here! --
+#      <dnm> Fmh - do you want to telnet to one box and then ssh to another?
+#      <Fmh> i realize an ssh proxy allows a man-in-the-middle attack.
+# <gargoyle> that sounds kinda pleasant right now
+#   gargoyle goes off to find a set of twins
+#  <amagosa> billn (=
+		       
 
 # Same as above, in the past tense.
 # Takes at least 1 arg:  nick to do the /whowas on

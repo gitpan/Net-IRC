@@ -323,7 +323,7 @@ sub new {
 
     # Shell-safe DCC filename stuff. Trying to prank-proof this
     # module is rather difficult.
-    $filename =~ tr/a-zA-Z.+0-9=&()[]%\-\\:,/_/c;
+    $filename =~ tr/a-zA-Z.+0-9=&()[]%\-\\\/:,/_/c;
     $fh = new IO::File $filename;
 
     unless (defined $fh) {

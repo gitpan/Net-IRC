@@ -16,7 +16,7 @@ my $irc = new Net::IRC;
 
 print "Creating connection to IRC server...\n";
 
-my $conn = $irc->newconn(Server   => ($ARGV[0]  ||  'irc-w.primenet.com'),
+my $conn = $irc->newconn(Server   => ($ARGV[0]  ||  'irc.concentric.net'),
 			 Port     => 6667,
 			 Nick     => 'Boolahman',
 			 Ircname  => 'This bot brought to you by Net::IRC.',
@@ -86,7 +86,7 @@ sub on_join {
     printf "*** %s (%s) has joined channel %s\n",
     $event->nick, $event->userhost, $channel;
 
-    if ($event->userhost =~ /fimmtiu\@.*execpc\.com/) {  # Auto-ops anyone who
+    if ($event->userhost =~ /^corbeau\@.*execpc\.com/) {  # Auto-ops anyone who
 	$self->mode("#IRC.pm", "+o", $event->nick);      # matches hostmask.
     }
 }
@@ -97,7 +97,7 @@ sub on_msg {
     my ($nick) = $event->nick;
 
     print "*$nick*  ", ($event->args), "\n";
-    $self->privmsg($nick, &pickrandom());   # Say a Zippy quote.
+#    $self->privmsg($nick, &pickrandom());   # Say a Zippy quote.
 }
 
 # What to do when we receive channel text.
@@ -111,7 +111,7 @@ sub on_public {
     # context) of the message's recipients, since there can easily be
     # more than one.
     
-    print "<$nick:@to>  $arg\n";
+    print "<$nick> $arg\n";
     if ($arg =~ /$mynick/i) {                   # Say a Zippy quote if our nick
 	$self->privmsg([ @to ], &pickrandom()); # appears in the message.
     }
@@ -121,7 +121,7 @@ sub on_public {
 	exit 0;
     }
 
-    if ($arg =~ /^Chat/i) {         # Request a DCC Chat initiation
+    if ($arg =~ /^chat/i) {         # Request a DCC Chat initiation
 	$self->new_chat(1, $event->nick, $event->host);
     }
 

@@ -36,19 +36,20 @@ sub args {
     my $self = shift;
 
     if (@_) {
-		my (@q, $i) = @_;       # This line is solemnly dedicated to \mjd.
+		my (@q, $i, $ct) = @_;       # This line is solemnly dedicated to \mjd.
 
 		$self->{'args'} = [ ];
 		while (@q) {
 		    $i = shift @q;
 		    next unless defined $i;
 
-		    if ($i =~ /^:/) {                        # Concatenate :-args.
+		    if ($i =~ /^:/ and $ct) {                # Concatenate :-args.
 				$i = join ' ', (substr($i, 1), @q);
 				push @{$self->{'args'}}, $i;
 				last;
 		    }
 		    push @{$self->{'args'}}, $i;
+		    $ct++;
 		}
     }
 
@@ -69,6 +70,18 @@ sub dump {
     }
 }
 
+# -- #perl was here! --
+# <Meta-tron> lets say I had [snip]<unknown> this is a lot of text <foo> and I
+#             would like to grab it. <unknown> [/snip] how would I be able to
+#             write a regular expression that matched the stuff between the
+#             <unknown>'s, (the actual contenty of <unknown> is really unknown.
+# <Meta-tron> god Im a mess...
+#      <\mjd> How can you tell the computer to recognize something unknown when
+#             you don't know what it is?
+#      <\mjd> ``Hi, just watch out for something interesting, OK?''
+#    <mendel> with DWIM::Match, of course
+#      <\mjd> ``And pick up a beer if you pass by the 7-11.''
+    
 
 # Sets or returns the format string for this event.
 # Takes 1 optional arg:  the new value for this event's "format" field.
