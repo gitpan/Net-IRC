@@ -29,7 +29,21 @@ use strict;               # A little anal-retention never hurt...
 use vars (                # with a few exceptions...
 	  '$AUTOLOAD',    #   - the name of the sub in &AUTOLOAD
 	  '%_udef',       #   - the hash containing the user's global handlers
+	  '%autoloaded',  #   - the hash containing names of &AUTOLOAD methods
 	 );
+
+
+# The names of the methods to be handled by &AUTOLOAD.
+# It seems the values ought to be useful *somehow*...
+my %autoloaded = (
+		  'ircname'  => undef,
+		  'port'     => undef,
+		  'username' => undef,
+		  'socket'   => undef,
+		  'verbose'  => undef,
+		  'parent'   => undef,
+		 );
+
 
 #####################################################################
 #        Methods start here, arranged in alphabetical order.        #
@@ -73,6 +87,7 @@ sub _add_generic_handler
 	return $hash_ref->{$ev} = [ $ref, $rp ];
     }
 }
+
 # This sub will assign a user's custom function to a particular event which
 # might be received by any Connection object.
 # Takes 3 args:  the event to modify, as either a string or numeric code
@@ -107,23 +122,39 @@ sub admin {
     $self->sl("ADMIN" . ($_[0] ? " $_[0]" : ""));
 }
 
-# Takes care of the following methods:  ircname, port, username, socket,
-# verbose, parent.
+# Takes care of the methods in %autoloaded
 # Sets specified attribute, or returns its value if called without args.
 sub AUTOLOAD {
-    my ($self, $meth) = (shift, (split /::/, $AUTOLOAD)[-1]);
+    my $self = @_;  ## can't modify @_ for goto &name
+    my $class = ref $self;  ## die here if !ref($self) ?
+    my $meth;
     
-    # Man... I had the greatest pun to go here, but I totally rewrote
-    # the sub. Damn. Ah, well... another day, another lousy joke...
-
-    unless (grep {$meth eq $_} qw(socket verbose parent
-				  ircname port username)) {
-	$self->printerr("No method called \"$meth\" for Connection object.");
-	return undef;
+    ($meth = $AUTOLOAD) =~ s/^.*:://;  ## strip fully qualified portion
+    
+    unless (exists $autoloaded{$meth}) {
+	$self->printerr("No method called \"$meth\" for $class object.");
+	return;
     }
     
-    if (@_)  {  $self->{"_$meth"} = shift  }
-    else     {  return $self->{"_$meth"};  }
+    eval <<EOSub;
+sub $meth {
+    my \$self = shift;
+	
+    if (\@_) {
+	my \$old = \$self->{"_$meth"};
+	
+	\$self->{"_$meth"} = shift;
+	
+	return \$old;
+    }
+    else {
+	return \$self->{"_$meth"};
+    }
+}
+EOSub
+    
+    ## no reason to play this game every time
+    goto &$meth;
 }
 
 # Attempts to connect to the specified IRC (server, port) with the specified
@@ -206,7 +237,7 @@ sub connected {
     my $self = shift;
     my $sock = $self->socket;
 
-    return ($self->{'connected'} && $sock->opened);
+    return ($self->{_connected} && $sock->opened);
 }
 
 # Sends a CTCP request to some hapless victim(s).
@@ -433,6 +464,19 @@ sub invite {
     $self->sl("INVITE $_[0] $_[1]");
 }
 
+# Checks if a particular nickname is in use.
+# Takes at least 1 arg:  nickname(s) to look up.
+sub ison {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr('Not enough args to ison().');
+	return undef;
+    }
+
+    $self->sl("ISON " . join(" ", @_));
+}
+
 # Joins a channel on the current server if connected, eh?.
 # Corresponds to /JOIN command.
 # Takes 2 args:  name of channel to join
@@ -505,6 +549,27 @@ sub list {
     $self->sl("LIST " . join(",", @_));
 }
 
+# Sends a request for some server/user stats.
+# Takes 1 optional arg: the name of a server to request the info from.
+sub lusers {
+    my $self = shift;
+    
+    $self->sl("LUSERS" . ($_[0] ? " $_[0]" : ""));
+}
+
+# Gets and/or sets the max line length.  The value previous to the sub
+# call will be returned.
+# Takes 1 (optional) arg: the maximum line length (in bytes)
+sub maxlinelen {
+    my $self = shift;
+
+    my $ret = $self->{_maxlinelen};
+
+    $self->{_maxlinelen} = shift if @_;
+
+    return $ret;
+}
+
 # Sends an action to the channel/nick you specify. It's truly amazing how
 # many IRCers have no idea that /me's are actually sent via CTCP.
 # Takes 2 args:  the channel or nick to bother with your witticism
@@ -527,6 +592,14 @@ sub mode {
 	return undef;
     }
     $self->sl("MODE $_[0] $_[1] " . join(" ", @_[2..$#_]));
+}
+
+# Sends a MOTD command to a server.
+# Takes 1 optional arg:  the server to query (defaults to current server)
+sub motd {
+    my $self = shift;
+
+    $self->sl("MOTD" . ($_[0] ? " $_[0]" : ""));
 }
 
 # Requests the list of users for a particular channel (or the entire net, if
@@ -555,25 +628,26 @@ sub new {
     # my $class = ref($proto) || $proto;             # Man, am I confused...
     
     my $self = {                # obvious defaults go here, rest are user-set
-		'_port'       => 6667,
+		_port       => 6667,
 		# Evals are for non-UNIX machines, just to make sure.
-		'_username'   => eval { scalar getpwuid($>) } || $ENV{USER}
+		_username   => eval { scalar getpwuid($>) } || $ENV{USER}
 		|| $ENV{LOGNAME} || "japh",
-		'_ircname'    => $ENV{IRCNAME} || eval { (getpwuid($>))[6] }
+		_ircname    => $ENV{IRCNAME} || eval { (getpwuid($>))[6] }
 		|| "Just Another Perl Hacker",
-		'_nick'       => $ENV{IRCNICK} || eval { scalar getpwuid($>) }
+		_nick       => $ENV{IRCNICK} || eval { scalar getpwuid($>) }
 		|| $ENV{USER} || $ENV{LOGNAME} || "WankerBot",  # heheh...
-		'_ignore'     => {},
-		'_errout'     => [ \*STDERR ],
-		'_output'     => [ \*STDOUT ],
-		'_handler'    => {},
-		'_verbose'    =>  0,       # Is this an OK default?
-		'_parent'     =>  shift,
-		'connected'   =>  0,
-		'_format' => {
+		_ignore     => {},
+		_errout     => [ \*STDERR ],
+		_output     => [ \*STDOUT ],
+		_handler    => {},
+		_verbose    =>  0,       # Is this an OK default?
+		_parent     =>  shift,
+		_connected  =>  0,
+		_maxlinelen =>  510,     # The RFC says we shouldn't exceed this.
+		_format     => {
 		    'default' => "[%f:%t]  %m  <%d>",
 		}
-	       };
+	      };
     
     bless $self, $proto;
     # do any necessary initialization here
@@ -583,11 +657,12 @@ sub new {
 }
 
 # Creates and returns a DCC CHAT object, analogous to IRC.pm's newconn().
-# Takes at least 2 args:  A boolean value indicating whether or not you are
-#                            initiating the CHAT connection.
-#                         An Event object for the DCC CHAT request.
+# Takes at least 1 arg:   An Event object for the DCC CHAT request.
 #                    OR   A list or listref of args to be passed to new(),
 #                         consisting of:
+#                           - A boolean value indicating whether or not
+#                             you're initiating the CHAT connection.
+#                           - The nick of the chattee
 #                           - The address to connect to
 #                           - The port to connect on
 sub new_chat {
@@ -620,23 +695,26 @@ sub new_chat {
 # Takes at least 1 arg:   An Event object for the DCC SEND request.
 #                    OR   A list or listref of args to be passed to new(),
 #                         consisting of:
+#                           - The nick of the file's sender
 #                           - The name of the file to receive
 #                           - The address to connect to
 #                           - The port to connect on
 #                           - The size of the incoming file
 sub new_get {
     my $self = shift;
-    my ($name, $address, $port, $size);
+    my ($nick, $name, $address, $port, $size);
 
     if (ref($_[0]) =~ /Event/) {
 	(undef, undef, $name, $address, $port, $size) = $_[0]->args;
+	$nick = $_[0]->nick;
     } elsif (ref($_[0]) eq "ARRAY") {
-	($name, $address, $port, $size) = @{$_[0]};
+	($nick, $name, $address, $port, $size) = @{$_[0]};
     } else {
-	($name, $address, $port, $size) = @_;
+	($nick, $name, $address, $port, $size) = @_;
     }
 
-    my $dcc = Net::IRC::DCC::GET->new($self, $address, $port, $size, $name);
+    my $dcc = Net::IRC::DCC::GET->new($self, $nick, $address,
+				      $port, $size, $name);
 
     $self->parent->addconn($dcc) if $dcc;
     return $dcc;
@@ -683,6 +761,9 @@ sub nick {
 # Sends a notice to a channel or person.
 # Takes 2 args:  the target of the message (channel or nick)
 #                the text of the message to send
+# The message will be chunked if it is longer than the _maxlinelen 
+# attribute, but it doesn't try to protect against flooding.  If you
+# give it too much info, the IRC server will kick you off!
 sub notice {
     my ($self, $to) = splice @_, 0, 2;
     
@@ -690,7 +771,13 @@ sub notice {
 	$self->printerr("Not enough arguments to notice()");
 	return undef;
     }
-    $self->sl("NOTICE $to :" . join("", @_));
+
+    my ($buf, $length, $line) = (join("", @_), $self->{_maxlinelen});
+
+    while($buf) {
+        ($line, $buf) = unpack("a$length a*", $buf);
+        $self->sl("NOTICE $to :$line");
+    }
 }
 
 # Makes you an IRCop, if you supply the right username and password.
@@ -746,9 +833,9 @@ sub parse {
     #               all non-numeric message types begin with a letter
     } elsif ($line =~ /^:?
 	     ([][}{\w\\\`^|\-]+?      # The nick part (valid nickname chars)
-	      !                        # The nick-username separator
-	      .+?                      # The username
-	      \@)?                     # Umm, duh...
+	     !                        # The nick-username separator
+	     .+?                      # The username
+	     \@)?                     # Umm, duh...
 	     [^.]+?\.                 # Everything up to the first period
 	     \S+?                     # The hostname (RFC noncompliance sucks!)
 	     \s+                      # Space between mask and message type
@@ -851,16 +938,15 @@ sub parse {
            \b/x                # Some other crap, whatever...
 	   ) {
 	$ev = $self->parse_num($line);
-#        ($from, $type, @stuff) = split /\s+/, $line;
-#        $from = substr $from, 1 if $from =~ /^:/;
-#	
-#	$ev = Net::IRC::Event->new( $type,
-#				    $from,
-#				    '',
-#				    'server',
-#				    @stuff );
+
+    } elsif (index($line, $self->nick . " MODE") == 1) {
+	$ev = Net::IRC::Event->new( 'umode',
+				    $self->server,
+				    $self->nick,
+				    'server',
+				    substr($line, index($line, ':', 1) + 1));
 	
-    } elsif ($line =~ /^ERROR/) {
+     } elsif ($line =~ /^ERROR/) {
 	if ($line =~ /^ERROR :Closing link/) {      # is this compatible?
 	    $ev = Net::IRC::Event->new( "disconnect",
 					$self->server,
@@ -1035,6 +1121,9 @@ sub print {
 # Takes 2 args:  the target of the message (channel or nick)
 #                the text of the message to send
 # Don't use this for sending CTCPs... that's what the ctcp() function is for.
+# The message will be chunked if it is longer than the _maxlinelen 
+# attribute, but it doesn't try to protect against flooding.  If you
+# give it too much info, the IRC server will kick you off!
 sub privmsg {
     my ($self, $to) = splice @_, 0, 2;
 
@@ -1043,12 +1132,21 @@ sub privmsg {
 	return undef;
     }
 
+    my ($buf, $length, $line) = (join("", @_), $self->{_maxlinelen});
+
     if (ref($to) =~ /^IO::Socket/) {
-	$to->send(join("", @_) . "\012");
+        while($buf) {
+	           ($line, $buf) = unpack("a$length a*", $buf);
+	           $to->send($line . "\012");
+       	} 
     } else {
-	$self->sl("PRIVMSG $to :" . join("", @_));
-    }
+	       while($buf) {
+	           ($line, $buf) = unpack("a$length a*", $buf);
+	           $self->sl("PRIVMSG $to :$line");
+	       }
+	   }
 }
+
 
 # Closes connection to IRC server.  (Corresponding function for /QUIT)
 # Takes 1 optional arg:  parting message, defaults to "Leaving" by custom.
@@ -1069,6 +1167,23 @@ sub quit {
     $self->socket->close;
     $self->{'connected'} = undef;
     return 1;
+}
+
+# Schedules an event to be executed after some length of time.
+# Takes at least 2 args:  the number of seconds to wait until it's executed
+#                         a coderef to execute when time's up
+# Any extra args are passed as arguments to the user's coderef.
+sub schedule {
+    my ($self, $time, $code) = splice @_, 0, 3;
+    my $parent = $self->parent;
+    
+    unless ($code) {
+	$self->printerr('Not enough arguments to Connection->schedule()');
+	return undef;
+    }
+
+    $time = time + int $time;
+    $parent->queue($time, $code, $self, @_);
 }
 
 # Lets J. Random IRCop connect one IRC server to another. How uninteresting.
@@ -1253,21 +1368,50 @@ sub trace {
     $self->sl("TRACE" . ($_[0] ? " $_[0]" : ""));
 }
 
+# Requests userhost info from the server.
+# Takes at least 1 arg: nickname(s) to look up.
+sub userhost {
+    my $self = shift;
+    
+    unless (@_) {
+	$self->printerr('Not enough args to userhost().');
+	return undef;
+    }
+    
+    $self->sl("USERHOST" . join (" ", @_));
+}
+
+# Sends a users request to the server, which may or may not listen to you.
+# Take 1 optional arg:  the server to query.
+sub users {
+    my $self = shift;
+
+    $self->sl("USERS" . ($_[0] ? " $_[0]" : ""));
+}
+
 # Asks the IRC server what version and revision of ircd it's running. Whoop.
 # Takes 1 optional arg:  the server name/glob. (default is current server)
 sub version {
     my $self = shift;
 
-    unless ($self->connected) {
-	$self->printerr("Not connected; can't send query for version()");
-	return undef;
-    }
-
     $self->sl("VERSION" . ($_[0] ? " $_[0]" : ""));
 }
 
+# Sends a message to all opers on the network. Hypothetically.
+# Takes 1 arg:  the text to send.
+sub wallops {
+    my $self = shift;
+
+    unless ($_[0]) {
+	$self->printerr("Not enough args to wallops(): No text to send!");
+	return undef;
+    }
+
+    $self->sl("WALLOPS " . join("", @_));
+}
+
 # Asks the server about stuff, you know. Whatever. Pass the Fritos, dude.
-# Takes 2 optional args:  the bit of info to ask about
+# Takes 2 optional args:  the bit of stuff to ask about
 #                         an "o" (nobody ever uses this...)
 sub who {
     my $self = shift;
@@ -1286,6 +1430,21 @@ sub whois {
 	return undef;
     }
     return $self->sl("WHOIS " . join(",", @_));
+}
+
+# Same as above, in the past tense.
+# Takes at least 1 arg:  nick to do the /whowas on
+#            (optional)  max number of hits to display
+#            (optional)  server or servermask to query
+sub whowas {
+    my $self = shift;
+
+    unless (@_) {
+	$self->printerr("Not enough arguments to whowas()");
+	return undef;
+    }
+    return $self->sl("WHOWAS $_[0]" . ($_[1] ? " $_[1]" : "") .
+		     (($_[1] && $_[2]) ? " $_[2]" : ""));
 }
 
 
@@ -1315,10 +1474,6 @@ sub _default {
 	# the ":" is in $line, if present.
 	$self->sl("PONG " . (join ' ', $event->args));
 	
-    } elsif ($event->type eq "quit") {
-        
-    } elsif ($event->type eq "join") {
-        
     } elsif ($event->type eq "disconnect") {
 	$self->socket->close;
 	$self->parent->changed;
@@ -1344,3 +1499,78 @@ sub _default {
 #                                                                            #
 ##############################################################################
 1;
+
+
+__END__
+
+=head1 NAME
+
+Net::IRC::Connection - Object-oriented interface to a single IRC connection
+
+=head1 SYNOPSIS
+
+Hard hat area: This section under construction. Watch for falling referents.
+
+=head1 DESCRIPTION
+
+This documentation is a subset of the main Net::IRC documentation. If
+you haven't already, please "perldoc Net::IRC" before continuing.
+
+Net::IRC::Connection defines a class whose instances are individual
+connections to a single IRC server. Several Net::IRC::Connection objects may
+be handled simultaneously by one Net::IRC object.
+
+=head1 METHOD DESCRIPTIONS
+
+This section is under construction, but hopefully will be finally written up
+by the next release. Please see the C<irctest> script and the source for
+details about this module.
+
+=head1 AUTHORS
+
+Conceived and initially developed by Greg Bacon (gbacon@adtran.com) and
+Dennis Taylor (corbeau@execpc.com).
+
+Ideas and large amounts of code donated by Nat "King" Torkington (gnat@frii.com).
+
+Currently being hacked on, hacked up, and worked over by the members of the
+Net::IRC developers mailing list. For details, see
+http://www.execpc.com/~corbeau/irc/list.html .
+
+=head1 URL
+
+The following identical pages contain up-to-date source and information about
+the Net::IRC project:
+
+=over
+
+=item *
+
+http://www.execpc.com/~corbeau/irc/
+
+=item *
+
+http://betterbox.net/fimmtiu/irc/
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+perl(1).
+
+=item *
+
+RFC 1459: The Internet Relay Chat Protocol
+
+=item *
+
+http://www.irchelp.org/, home of fine IRC resources.
+
+=back
+
+=cut
+

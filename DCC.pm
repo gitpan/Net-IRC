@@ -53,6 +53,14 @@ sub time {
     return time - shift->{_time};
 }
 
+sub DESTROY {
+    my $self = shift;
+    
+    $self->{_parent}->handler(Net::IRC::Event->new('dcc_close',
+						   $self->{_nick},
+						   $self->{_socket},
+						   $self->{_type}));
+}
 
 # -- #perl was here! --
 #     orev: hehe...
@@ -71,7 +79,7 @@ use IO::Socket;
 
 sub new {
 
-    my ($class, $container, $address, $port, $size, $filename) = @_;
+    my ($class, $container, $nick, $address, $port, $size, $filename) = @_;
     
     my ($sock, $fh);
 
@@ -94,25 +102,34 @@ sub new {
     $sock = new IO::Socket::INET( Proto    => "tcp",
 				  PeerAddr => "$address:$port" );
 
-    unless(defined $sock) {
+    if (defined $sock) {
+	$container->handler(Net::IRC::Event->new('dcc_open',
+						 $nick,
+						 $sock,
+						 'get',
+						 'get', $sock));
+	
+    } else {
         $container->printerr("Can't connect to $address: $!");
         $fh->close();
         return undef;
     }
-
+    
     $sock->autoflush(1);
 
     my $self = {
         _bin        =>  0,      # Bytes we've recieved thus far
         _bout       =>  0,      # Bytes we've sent
+        _connected  =>  1,
         _fh         =>  $fh,    # FileHandle we will be writing to.
         _filename   =>  $filename,
+	_nick       =>  $nick,  # Nick of person on other end
+        _parent     =>  $container,
         _size       =>  $size,  # Expected size of file
         _socket     =>  $sock,  # Socket we're reading from
         _time       =>  time, 
-        _connected  =>  1,
-        _parent     =>  $container
-    };
+	_type       =>  'get',
+        };
 
     bless $self, $class;
 
@@ -124,7 +141,7 @@ sub new {
 #  \merlyn: I mean carle
 #  \merlyn: carly
 # Silmaril: man merlyn
-# Silmaril: you shouold have offered HER the shower.
+# Silmaril: you should have offered HER the shower.
 #   \petey: all three of them?
 
 sub parse {
@@ -204,11 +221,18 @@ sub new {
 				  LocalPort => $port,
                                   Listen    => 1);
 
-    unless (defined $sock) {
+    if (defined $sock) {
+	$container->handler(Net::IRC::Event->new('dcc_open',
+						 $nick,
+						 $sock,
+						 'send',
+						 'send', $sock));
+	
+    } else {
         $container->printerr("Couldn't open socket: $!");
         $fh->close;
         return undef;
-    }
+    }    
 
     $container->ctcp('DCC SEND', $nick, $filename, 
                      unpack("N",inet_aton(hostname())), $port, $size);
@@ -238,10 +262,12 @@ sub new {
         _bout       =>  0,         # Bytes we've sent
         _fh         =>  $fh,       # FileHandle we will be reading from.
         _filename   =>  $filename,
+	_nick       =>  $nick,
         _parent     =>  $container,
         _size       =>  $size,     # Size of file
         _socket     =>  $sock,     # Socket we're writing to
         _time       =>  time, 
+	_type       =>  'send',
     };
 
     bless $self, $class;
@@ -339,21 +365,35 @@ sub new {
         # this will block, leaving the client in a bad position
         $sock = $sock->accept;
 
-        unless (defined $sock) {
-            $container->printerr("Error in connect: $!");
-            return undef;
-        }
-
+	if (defined $sock) {
+	    $container->handler(Net::IRC::Event->new('dcc_open',
+						     $nick,
+						     $sock,
+						     'chat',
+						     'chat', $sock));
+	    
+	} else {
+	    $container->printerr("Error in DCC CHAT connect: $!");
+	    return undef;
+	}
+	
     } else {      # we're connecting
-
+	
         $address = inet_ntoa(pack("N",$address));
         $sock = new IO::Socket::INET( Proto    => "tcp",
 				      PeerAddr => "$address:$port");
 
-        unless (defined $sock) {
-            $container->printerr("Error in connect: $!");
-            return undef;
-        }
+        if (defined $sock) {
+	    my $ev = Net::IRC::Event->new('dcc_open',
+					  $nick,
+					  $sock,
+					  'chat',
+					  'chat', $sock);
+	    
+	} else {
+	    $container->printerr("Error in connect: $!");
+	    return undef;
+	}
     }
 
     $sock->autoflush(1);
@@ -361,11 +401,12 @@ sub new {
     my $self = {
         _bin        =>  0,      # Bytes we've recieved thus far
         _bout       =>  0,      # Bytes we've sent
+        _connected  =>  1,
+	_nick       =>  $nick,  # Nick of the client on the other end
+        _parent     =>  $container,
         _socket     =>  $sock,  # Socket we're reading from
         _time       =>  time,
-	_nick       =>  $nick,  # Nick of the client on the other end
-        _connected  =>  1,
-        _parent     =>  $container
+	_type       =>  'chat',
     };
 
     bless $self, $class;
@@ -409,3 +450,82 @@ sub parse {
 
 
 1;
+
+
+__END__
+
+=head1 NAME
+
+Net::IRC::DCC - Object-oriented interface to a single DCC connection
+
+=head1 SYNOPSIS
+
+Hard hat area: This section under construction. Watch for falling referents.
+
+=head1 DESCRIPTION
+
+This documentation is a subset of the main Net::IRC documentation. If
+you haven't already, please "perldoc Net::IRC" before continuing.
+
+Net::IRC::DCC defines a few subclasses that handle DCC CHAT, GET, and SEND
+requests for inter-client communication. DCC objects are created by
+C<Connection-E<gt>new_{chat,get,send}()> in much the same way that
+C<IRC-E<gt>newconn()> creates a new connection object.
+
+B<NOTE:> DCC CHAT and SEND currently block on the accept() call when setting up
+a new connection. This will probably change in the near future, but bear it in
+mind for the time being if you expect to use these heavily.
+
+=head1 METHOD DESCRIPTIONS
+
+This section is under construction, but hopefully will be finally written up
+by the next release. Please see the C<irctest> script and the source for
+details about this module.
+
+=head1 AUTHORS
+
+Conceived and initially developed by Greg Bacon (gbacon@adtran.com) and
+Dennis Taylor (corbeau@execpc.com).
+
+Ideas and large amounts of code donated by Nat "King" Torkington (gnat@frii.com).
+
+Currently being hacked on, hacked up, and worked over by the members of the
+Net::IRC developers mailing list. For details, see
+http://www.execpc.com/~corbeau/irc/list.html .
+
+=head1 URL
+
+The following identical pages contain up-to-date source and information about
+the Net::IRC project:
+
+=over
+
+=item *
+
+http://www.execpc.com/~corbeau/irc/
+
+=item *
+
+http://betterbox.net/fimmtiu/irc/
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+perl(1).
+
+=item *
+
+RFC 1459: The Internet Relay Chat Protocol
+
+=item *
+
+http://www.irchelp.org/, home of fine IRC resources.
+
+=back
+
+=cut

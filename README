@@ -1,4 +1,4 @@
-Net::IRC 0.41  README        Dennis Taylor        Wed Dec 10 16:08:21 CST 1997
+Net::IRC 0.42  README        Dennis Taylor        Wed Dec 10 16:08:21 CST 1997
 ==============================================================================
 
 Table of Contents
@@ -24,13 +24,15 @@ Perl implementation of the IRC protocol (RFC 1459), supported and developed by
 several members of the EFnet IRC channel #perl.
 
     Please read the Changes file for details about recent updates, and the
-Bugs section of this document for notes about future improvements. There is as
-of yet no formal documentation, but the sample script included with the
-package should give the clueful reader an idea of how it works. Someday, we'll
-actually get around to writing PODs for it... once it's reasonably stable.
+Bugs section of this document for notes about future improvements. This is
+the first version of Net::IRC to come with documentation... albeit incomplete
+and not terribly useful documentation, but we'll get it fleshed out soon
+enough, so bear with us.
 
     PLEASE send the authors feedback and advice. Contact information can be
-found at the end of this file. 
+found at the end of this file. Writing really annoying bots with this module
+is punishable by having merlyn sing "The Rainbow Connection" to you, so watch
+it!
 
 
 
@@ -47,6 +49,10 @@ about the Net::IRC project:
 interest to any non-abnormally-curious person reading this, can be found at:
 
     http://www.execpc.com/~corbeau/irc/dev/
+
+    And, of course, there's CPAN for the (mostly) latest released source:
+
+    http://www.perl.com/CPAN/modules/by-module/Net/
 
 
 
@@ -75,7 +81,8 @@ Do this, in the following order:
         make
         make install
 
-You may now wish to play around with the...
+We don't have any automated tests yet, but they're probably in the not-too-
+distant future. You may instead wish to play around with the...
 
 
 
@@ -89,20 +96,23 @@ to give you an idea of how the whole enchilada fits together until we actually
 get some real documentation written. Just don't be surprised if IRC admins get
 a clue about it and start killing it as soon as they see one log on. :-)
 
+	Oh, and by the way... if you say "Send me <filename>" to an irctest
+bot, it will send the specified file (if it can) as a demonstration of
+Net::IRC's DCC interface. This is a potential security hole, so be careful.
+
 
 
 6. Bugs
 ------------------------
 
     None.
-    
+
     OK, so I'm full of it. Probably tons. In particular, the format system
-doesnt even pretend to work yet, and user-initiated DCCs block indefinitely.
-Also, there's no way to schedule asynchronous events like "run this handler
-every 5 minutes", and the "connection closed" messages for non-Connection
-objects don't tell you which connection closed down. (Doh.)  Expect fixes
-for these soon. Then expect us to find a whole new crop to write about in
-this space. Sigh.
+doesnt even pretend to work yet, hostnames without periods in them make it
+choke, and user-initiated DCCs block on accept() indefinitely. Also, the
+"connection closed" messages for non-Connection objects don't tell you
+which connection closed down. (Doh.)  Expect fixes for these soon. Then
+expect us to find a whole new crop to write about in this space. Sigh.
 
     Should you find one that we may have overlooked, PLEASE get in touch with
 one of the developers (see section 8, below).

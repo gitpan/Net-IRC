@@ -1,13 +1,10 @@
 Changes
 Connection.pm
 DCC.pm
-dcctest
 Event.pm
 IRC.pm
 irctest
 LICENSE
 MANIFEST
 Makefile.PL
-netircdocs.pod
 README
-test.pl

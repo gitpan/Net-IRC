@@ -103,6 +103,26 @@ Revision history for Perl extension Net::IRC.
 	- Removed some debugging prints that accidentally got left in
 	  a few parts of the code. Doh!
 
-0.41   date
+0.41   Wed Dec 10 22:36:10 CST 1997
 	- Fixed the order of args to Connection->ctcp().
-	- 
+	- Fixed lots of bugs that this change caused to manifest. Argh.
+	- First Net::IRC release posted to CPAN, 11 Dec 1997.
+
+0.42   Mon Dec 29 22:44:18 CST 1997
+	- Added dcc_open and dcc_close handlers for DCC connections.
+	- DCC::GET now requires a nick as an argument to new().
+	- Added motd, users, whowas, ison, lusers, userhost and wallops subs
+	  to Connection.pm.
+	- Added event scheduler to IRC.pm and Connection.pm. Good idea, Che!
+	- &AUTOLOAD in Connection.pm completely rewritten.
+	- Applied a nifty patch that breaks big messages to privmsg() and
+	  notice() into smaller chunks and sends them piecemeal.
+	- irctest now does DCC SEND via public message, as a demonstration.
+	- Real POD documentation for IRC.pm written; work begun on PODs for
+	  the rest, but it's a nontrivial task.
+	- Added do_one_loop() patch to IRC.pm and rewrote start() for easier
+	  Tk integration with Net::IRC scripts.
+	- Fixed user mode case in Connection->parse().
+	- Added a timeout() method to IRC.pm for finer user control over the
+	  select loop. Woo woo!
+

@@ -316,3 +316,78 @@ sub userhost {
 
 
 1;
+
+
+__END__
+
+=head1 NAME
+
+Net::IRC::Event - A class for passing event data between subroutines
+
+=head1 SYNOPSIS
+
+Hard hat area: This section under construction. Watch for falling referents.
+
+=head1 DESCRIPTION
+
+This documentation is a subset of the main Net::IRC documentation. If
+you haven't already, please "perldoc Net::IRC" before continuing.
+
+Net::IRC::Event defines a standard interface to the salient information for
+just about any event your client may witness on IRC. It's about as close as
+we can get in Perl to a struct, with a few extra nifty features thrown in.
+
+=head1 METHOD DESCRIPTIONS
+
+This section is under construction, but hopefully will be finally written up
+by the next release. Please see the C<irctest> script and the source for
+details about this module.
+
+=head1 AUTHORS
+
+Conceived and initially developed by Greg Bacon (gbacon@adtran.com) and
+Dennis Taylor (corbeau@execpc.com).
+
+Ideas and large amounts of code donated by Nat "King" Torkington (gnat@frii.com).
+
+Currently being hacked on, hacked up, and worked over by the members of the
+Net::IRC developers mailing list. For details, see
+http://www.execpc.com/~corbeau/irc/list.html .
+
+=head1 URL
+
+The following identical pages contain up-to-date source and information about
+the Net::IRC project:
+
+=over
+
+=item *
+
+http://www.execpc.com/~corbeau/irc/
+
+=item *
+
+http://betterbox.net/fimmtiu/irc/
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+perl(1).
+
+=item *
+
+RFC 1459: The Internet Relay Chat Protocol
+
+=item *
+
+http://www.irchelp.org/, home of fine IRC resources.
+
+=back
+
+=cut
+
