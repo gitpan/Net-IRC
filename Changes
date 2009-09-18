@@ -411,3 +411,5 @@ Revision history for Perl extension Net::IRC.
 	  - Indentation
 	- Updated current maintainers (should have been changed for 0.74)
 
+0.76  Thu Sep 17 23:47:13 EDT 2009
+  - Officially deprecated. See Bot::BasicBot and POE::Component::IRC instead.

@@ -33,7 +33,7 @@ BEGIN {
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.75";
+$VERSION = "0.76";
 
 sub new {
   my $proto = shift;
@@ -278,7 +278,17 @@ __END__
 
 =head1 NAME
 
-Net::IRC - Perl interface to the Internet Relay Chat protocol
+Net::IRC - DEPRECATED Perl interface to the Internet Relay Chat protocol
+
+=head1 USE THESE INSTEAD
+
+This module has been abandoned and is no longer developed. This release serves
+only to warn current and future users about this and to direct them to supported
+and actively-developed libraries for connecting Perl to IRC. Most new users will
+want to use L<Bot::BasicBot>, whereas more advanced users will appreciate the
+flexibility offered by L<POE::Component::IRC>. We understand that porting code
+to a new framework can be difficult. Please stop by #perl on irc.freenode.net
+and we'll be happy to help you out with bringing your bots into the modern era.
 
 =head1 SYNOPSIS
 

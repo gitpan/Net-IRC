@@ -4,6 +4,7 @@ Net::IRC 0.72 README        T.J. Eckman           Mon Jul 02 00:00:00 GMT 2000
 Table of Contents
 ------------------------
 
+0.  Deprecation notice
 1.  Introduction
 2.  Availability
 3.  Prerequisites
@@ -15,6 +16,14 @@ Table of Contents
 8.  Copyright
 9.  Developer Information
 
+
+
+0. Deprecation notic
+------------------------
+
+    This module is officially DEPRECATED. It has been abandoned in favor of more
+modern approaches, including Bot::BasicBot and POE::Component::IRC. This release
+only serves to warn current and new users about the status of this distribution.
 
 
 1. Introduction
