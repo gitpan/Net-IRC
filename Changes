@@ -413,3 +413,9 @@ Revision history for Perl extension Net::IRC.
 
 0.76  Thu Sep 17 23:47:13 EDT 2009
   - Officially deprecated. See Bot::BasicBot and POE::Component::IRC instead.
+
+0.77  Sat Dec 19 17:46:07 EST 2009
+  - Previous maintainer needs to learn how the dist tools work and include
+    everything in the manifest. New version to include everything in the old
+    tarball and make people stop harassing me about this long-dead (good
+    riddance) distribution once and for all.
