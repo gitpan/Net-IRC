@@ -3,6 +3,7 @@ use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
+exit 0 if $ENV{AUTOMATED_TESTING};
 my $ok = 'I acknowledge that Net::IRC is unsupported and I wish to proceed.';
 my $warning = <<WILLROBINSON;
 --------------------------------------------------------------------------------

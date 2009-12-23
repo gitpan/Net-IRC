@@ -419,3 +419,7 @@ Revision history for Perl extension Net::IRC.
     everything in the manifest. New version to include everything in the old
     tarball and make people stop harassing me about this long-dead (good
     riddance) distribution once and for all.
+
+0.78  Wed Dec 23 12:07:22 EST 2009
+  - Spoke too soon, of course. Fix from BinGOs for fixing running this under
+    automated testing.
