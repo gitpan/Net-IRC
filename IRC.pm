@@ -33,7 +33,7 @@ BEGIN {
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "0.78";
+$VERSION = "0.79";
 
 sub new {
   my $proto = shift;
@@ -278,7 +278,7 @@ __END__
 
 =head1 NAME
 
-Net::IRC - DEPRECATED Perl interface to the Internet Relay Chat protocol
+Net::IRC - DEAD SINCE 2004 Perl interface to the Internet Relay Chat protocol
 
 =head1 USE THESE INSTEAD
 
@@ -302,6 +302,11 @@ and we'll be happy to help you out with bringing your bots into the modern era.
     $irc->start;
 
 =head1 DESCRIPTION
+
+This module has been abandoned and deprecated since 2004. The original authors
+have moved onto L<POE::Component::IRC> and more modern techniques. This
+distribution is not maintained and only uploaded to present successively louder
+"don't use this" warnings to those unaware.
 
 Welcome to Net::IRC, a work in progress. First intended to be a quick tool
 for writing an IRC script in Perl, Net::IRC has grown into a comprehensive

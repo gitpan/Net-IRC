@@ -423,3 +423,8 @@ Revision history for Perl extension Net::IRC.
 0.78  Wed Dec 23 12:07:22 EST 2009
   - Spoke too soon, of course. Fix from BinGOs for fixing running this under
     automated testing.
+
+0.79  Sat Dec 26 20:57:40 EST 2009
+  - Put "hic sunt dracones" text in the DESCRIPTION because Google indexes
+    search.cpan.org intelligently and presents the =head1 DESCRIPTION as the
+    search preview.
